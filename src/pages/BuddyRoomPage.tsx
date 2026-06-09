@@ -1,0 +1,59 @@
+import { Bot, Brain } from "lucide-react";
+import { Card, GradientCard } from "../components/Card";
+import { BuddyRoom } from "../components/buddy/BuddyRoom";
+import { useActiveBuddy } from "../components/buddy/useActiveBuddy";
+import { useCompanionModelStore } from "../components/buddy/useCompanionModelStore";
+import { progress, rewards } from "../data/mockData";
+
+export function BuddyRoomPage() {
+  const { activeBuddy } = useActiveBuddy();
+  const { activeEquippedModel, clearEquippedModel } = useCompanionModelStore();
+
+  return (
+    <div className="mx-auto max-w-screen-2xl space-y-6">
+      <BuddyRoom
+        buddy={activeBuddy}
+        equippedModel={activeEquippedModel}
+        onClearEquippedModel={clearEquippedModel}
+        vrmUrl="/vrm-models/vita.vrm"
+      />
+
+      <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+        <Card>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xl font-black text-slate-950">Kho đồ</h2>
+            {activeEquippedModel ? (
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">Buddy 3D đang bật</span>
+            ) : null}
+          </div>
+          <div className="mt-5 grid grid-cols-3 gap-3">
+            {rewards.slice(0, 6).map((reward) => {
+              const Icon = reward.icon;
+              return (
+                <div className="rounded-2xl bg-slate-50 p-3 text-center" key={reward.id}>
+                  <Icon className="mx-auto text-brand-600" size={24} />
+                  <p className="mt-2 truncate text-xs font-semibold text-slate-600">{reward.name}</p>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+
+        <GradientCard>
+          <div className="flex items-center gap-3">
+            <Bot className="text-brand-700" />
+            <h2 className="text-xl font-black text-slate-950">Gợi ý học tập từ AI</h2>
+          </div>
+          <ul className="mt-5 grid gap-3 text-sm leading-6 text-slate-600 md:grid-cols-3">
+            {progress.aiRoadmap.map((item) => (
+              <li className="flex gap-2 rounded-2xl bg-white/70 p-4 shadow-sm" key={item}>
+                <Brain className="mt-0.5 shrink-0 text-brand-600" size={16} />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </GradientCard>
+      </div>
+    </div>
+  );
+}
