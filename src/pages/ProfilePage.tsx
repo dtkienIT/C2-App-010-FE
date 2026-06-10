@@ -107,45 +107,8 @@ export function ProfilePage() {
         </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_390px]">
-        <section className="app-card p-5 sm:p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-black uppercase tracking-[0.16em] text-slate-500">Phân quyền</p>
-              <h2 className="mt-1 text-2xl font-black">Quyền hiện tại</h2>
-            </div>
-            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
-              <Crown size={24} />
-            </div>
-          </div>
-
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            {capabilities.map((capability) => (
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" key={capability}>
-                <p className="font-black text-slate-900">{capability}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 rounded-2xl bg-slate-50 p-5">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <p className="font-black text-slate-950">Trạng thái phiên</p>
-                <p className="mt-1 text-sm font-semibold text-slate-500">
-                  {isGuest
-                    ? "Bạn đang dùng Guest Pass để xem nhanh giao diện trước khi tạo tài khoản."
-                    : "Tài khoản này đang hoạt động đầy đủ với dữ liệu học tập đã được lưu."}
-                </p>
-              </div>
-              <button className="secondary-button" onClick={handleLogout} type="button">
-                <LogOut size={18} />
-                Đăng xuất
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <aside className="app-card p-5 sm:p-6">
+      <div className="grid gap-6 lg:grid-cols-[390px_1fr]">
+        <aside className="order-first app-card p-5 sm:p-6">
           {isGuest ? (
             <form className="space-y-4" onSubmit={handleUpgrade}>
               <div className="grid h-12 w-12 place-items-center rounded-2xl bg-blue-50 text-blue-600">
@@ -198,6 +161,43 @@ export function ProfilePage() {
             </div>
           )}
         </aside>
+
+        <section className="app-card p-5 sm:p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.16em] text-slate-500">Phân quyền</p>
+              <h2 className="mt-1 text-2xl font-black">Quyền hiện tại</h2>
+            </div>
+            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
+              <Crown size={24} />
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            {capabilities.map((capability) => (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" key={capability}>
+                <p className="font-black text-slate-900">{capability}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 rounded-2xl bg-slate-50 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="font-black text-slate-950">Trạng thái phiên</p>
+                <p className="mt-1 text-sm font-semibold text-slate-500">
+                  {isGuest
+                    ? "Bạn đang dùng Guest Pass để xem nhanh giao diện trước khi tạo tài khoản."
+                    : "Tài khoản này đang hoạt động đầy đủ với dữ liệu học tập đã được lưu."}
+                </p>
+              </div>
+              <button className="secondary-button" onClick={handleLogout} type="button">
+                <LogOut size={18} />
+                Đăng xuất
+              </button>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );

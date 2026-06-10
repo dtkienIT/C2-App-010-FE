@@ -16,6 +16,7 @@ type BuddyStatusPanelProps = {
     type: string;
     xp: number;
   };
+  displayName?: string;
   mood: BuddyMood;
 };
 
@@ -28,7 +29,7 @@ const accentPanel: Record<BuddyAccent, string> = {
   violet: "from-violet-50 to-fuchsia-50 text-violet-700",
 };
 
-export function BuddyStatusPanel({ buddy, mood }: BuddyStatusPanelProps) {
+export function BuddyStatusPanel({ buddy, displayName, mood }: BuddyStatusPanelProps) {
   const moodMeta = buddyMoodMeta[mood];
   const MoodIcon = moodMeta.icon;
   const statusRows = [
@@ -46,7 +47,7 @@ export function BuddyStatusPanel({ buddy, mood }: BuddyStatusPanelProps) {
             <Bot size={23} />
           </div>
           <div className="min-w-0">
-            <h2 className="truncate text-2xl font-black text-slate-950">{buddy.name}</h2>
+            <h2 className="truncate text-2xl font-black text-slate-950">{displayName ?? buddy.name}</h2>
             <p className="text-sm font-bold text-slate-500">{buddy.type}</p>
           </div>
         </div>

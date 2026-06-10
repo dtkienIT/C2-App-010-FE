@@ -1,4 +1,5 @@
 import { Bot, Brain } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Card, GradientCard } from "../components/Card";
 import { BuddyRoom } from "../components/buddy/BuddyRoom";
 import { useActiveBuddy } from "../components/buddy/useActiveBuddy";
@@ -7,14 +8,53 @@ import { progress, rewards } from "../data/mockData";
 
 export function BuddyRoomPage() {
   const { activeBuddy } = useActiveBuddy();
-  const { activeEquippedModel, clearEquippedModel } = useCompanionModelStore();
+  const { activeEquippedModel, disableBuddy3D, enableBuddy3D, equippedModel, isBuddy3DEnabled } = useCompanionModelStore();
+  const isUsingBuddy3D = Boolean(activeEquippedModel);
+  const hasSavedBuddy3D = Boolean(equippedModel);
 
   return (
     <div className="mx-auto max-w-screen-2xl space-y-6">
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">Chế độ hiện tại</p>
+            <h2 className="mt-2 text-2xl font-black text-slate-950">
+              {isUsingBuddy3D ? `Buddy 3D: ${activeEquippedModel?.name ?? ""}` : `Buddy thường: ${activeBuddy.name}`}
+            </h2>
+            <p className="mt-2 text-sm font-semibold text-slate-600">
+              {isUsingBuddy3D
+                ? "Buddy Room đang hiển thị model 3D. Bạn có thể quay lại Buddy thường bất cứ lúc nào."
+                : hasSavedBuddy3D
+                  ? `Buddy 3D hiện đang tắt. Model đã lưu gần nhất là ${equippedModel?.name}.`
+                  : "Buddy Room đang dùng buddy thường. Chọn Buddy 3D nếu bạn muốn bật model và action 3D."}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Link className="secondary-button" to="/buddies">
+              Chọn Buddy thường
+            </Link>
+            <Link className="secondary-button" to="/buddy-3d">
+              Mở Buddy 3D
+            </Link>
+            {isUsingBuddy3D ? (
+              <button className="primary-button" onClick={disableBuddy3D} type="button">
+                Tắt Buddy 3D
+              </button>
+            ) : hasSavedBuddy3D ? (
+              <button className="primary-button" onClick={enableBuddy3D} type="button">
+                Bật lại Buddy 3D
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </Card>
+
       <BuddyRoom
         buddy={activeBuddy}
         equippedModel={activeEquippedModel}
-        onClearEquippedModel={clearEquippedModel}
+        isBuddy3DEnabled={isBuddy3DEnabled}
+        onDisableBuddy3D={disableBuddy3D}
         vrmUrl="/vrm-models/vita.vrm"
       />
 

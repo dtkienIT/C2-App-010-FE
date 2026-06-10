@@ -1,6 +1,6 @@
 import React from "react";
 import { Environment, OrbitControls } from "@react-three/drei";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { VRMLoaderPlugin } from "@pixiv/three-vrm";
 import { VRMAnimationLoaderPlugin, createVRMAnimationClip } from "@pixiv/three-vrm-animation";
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -8,7 +8,18 @@ import { AnimationClip, AnimationMixer, Box3, LoopOnce, LoopRepeat, Vector3 } fr
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 const ACTION_LIBRARY = {
-  idle: { loop: true, oneShotDuration: 0, url: "/animations/vrma_01.vrma", useClip: true },
+  idle: { loop: true, oneShotDuration: 0, url: "/animations/Relax.vrma", useClip: true },
+  relax: { loop: true, oneShotDuration: 0, url: "/animations/Relax.vrma", useClip: true },
+  thinking: { loop: true, oneShotDuration: 0, url: "/animations/Thinking.vrma", useClip: true },
+  lookAround: { loop: true, oneShotDuration: 0, url: "/animations/LookAround.vrma", useClip: true },
+  clapping: { loop: false, oneShotDuration: 2.4, url: "/animations/Clapping.vrma", useClip: true },
+  goodbye: { loop: false, oneShotDuration: 2.4, url: "/animations/Goodbye.vrma", useClip: true },
+  jump: { loop: false, oneShotDuration: 1.8, url: "/animations/Jump.vrma", useClip: true },
+  angry: { loop: false, oneShotDuration: 1.8, url: "/animations/Angry.vrma", useClip: true },
+  blush: { loop: false, oneShotDuration: 1.8, url: "/animations/Blush.vrma", useClip: true },
+  sad: { loop: false, oneShotDuration: 1.8, url: "/animations/Sad.vrma", useClip: true },
+  sleepy: { loop: true, oneShotDuration: 0, url: "/animations/Sleepy.vrma", useClip: true },
+  surprised: { loop: false, oneShotDuration: 1.8, url: "/animations/Surprised.vrma", useClip: true },
   greeting: { loop: false, oneShotDuration: 2.4, url: "/animations/vrma_02.vrma", useClip: true },
   peace: { loop: false, oneShotDuration: 2.4, url: "/animations/vrma_03.vrma", useClip: true },
   shoot: { loop: false, oneShotDuration: 2.1, url: "/animations/vrma_04.vrma", useClip: true },
@@ -21,7 +32,16 @@ const DEFAULT_ACTION = "idle";
 const DEFAULT_VRM_URL = "/vrm-models/vita.vrm";
 const TARGET_HEIGHT = 2;
 const FORCED_CAMERA_ZOOM = 180;
+const MIN_CAMERA_ZOOM = FORCED_CAMERA_ZOOM;
+const MAX_CAMERA_ZOOM = 420;
+const VRM_MODEL_CACHE = new Map();
+const VRMA_ASSET_EXISTS_CACHE = new Map();
+const VRMA_CLIP_CACHE = new Map();
 const MODEL_CONFIGS = {
+  "/vrm-models/naruto.vrm": { ambientIntensity: 1.02, keyLightIntensity: 1.82, preferProceduralOnly: false, rimLightIntensity: 0.85, rotationY: Math.PI, scaleMultiplier: 1, targetHeight: TARGET_HEIGHT, yOffset: 0 },
+  "/vrm-models/8590256991748008892.vrm": { ambientIntensity: 1, keyLightIntensity: 1.75, preferProceduralOnly: false, rimLightIntensity: 0.82, rotationY: Math.PI, scaleMultiplier: 1, targetHeight: TARGET_HEIGHT, yOffset: 0 },
+  "/vrm-models/8329890252317737768.vrm": { ambientIntensity: 1, keyLightIntensity: 1.75, preferProceduralOnly: false, rimLightIntensity: 0.82, rotationY: Math.PI, scaleMultiplier: 1, targetHeight: TARGET_HEIGHT, yOffset: 0 },
+  "/vrm-models/sample.vrm": { ambientIntensity: 1, keyLightIntensity: 1.8, preferProceduralOnly: false, rimLightIntensity: 0.8, rotationY: Math.PI, scaleMultiplier: 1, targetHeight: TARGET_HEIGHT, yOffset: 0 },
   "/vrm-models/vita.vrm": { ambientIntensity: 1.1, keyLightIntensity: 2, preferProceduralOnly: false, rimLightIntensity: 0.95, rotationY: Math.PI, scaleMultiplier: 1, targetHeight: TARGET_HEIGHT, yOffset: 0 },
   "/vrm-models/vivi.vrm": { ambientIntensity: 1.05, keyLightIntensity: 1.95, preferProceduralOnly: false, rimLightIntensity: 0.9, rotationY: Math.PI, scaleMultiplier: 1, targetHeight: TARGET_HEIGHT, yOffset: 0 },
   "/vrm-models/buddy-1.vrm": { ambientIntensity: 0.78, keyLightIntensity: 1.3, preferProceduralOnly: false, rimLightIntensity: 0.48, rotationY: 0, scaleMultiplier: 1, targetHeight: TARGET_HEIGHT, yOffset: -0.04 },
@@ -55,37 +75,56 @@ function getStableModelFit(vrm, modelConfig) {
 }
 
 function loadVRMModel(vrmUrl) {
-  return new Promise((resolve, reject) => {
-    const loader = new GLTFLoader();
-    loader.register((parser) => new VRMLoaderPlugin(parser));
-
-    loader.load(
+  if (!VRM_MODEL_CACHE.has(vrmUrl)) {
+    VRM_MODEL_CACHE.set(
       vrmUrl,
-      (gltf) => {
-        const vrm = gltf.userData.vrm;
+      new Promise((resolve, reject) => {
+        const loader = new GLTFLoader();
+        loader.register((parser) => new VRMLoaderPlugin(parser));
 
-        if (!vrm) {
-          reject(new Error(`VRM not found in ${vrmUrl}`));
-          return;
-        }
+        loader.load(
+          vrmUrl,
+          (gltf) => {
+            const vrm = gltf.userData.vrm;
 
-        const modelConfig = MODEL_CONFIGS[vrmUrl] ?? MODEL_CONFIGS[DEFAULT_VRM_URL];
-        vrm.scene.rotation.y = modelConfig?.rotationY ?? 0;
-        resolve(vrm);
-      },
-      undefined,
-      reject,
+            if (!vrm) {
+              reject(new Error(`VRM not found in ${vrmUrl}`));
+              return;
+            }
+
+            const modelConfig = MODEL_CONFIGS[vrmUrl] ?? MODEL_CONFIGS[DEFAULT_VRM_URL];
+            vrm.scene.rotation.y = modelConfig?.rotationY ?? 0;
+            resolve(vrm);
+          },
+          undefined,
+          (error) => {
+            VRM_MODEL_CACHE.delete(vrmUrl);
+            reject(error);
+          },
+        );
+      }),
     );
-  });
+  }
+
+  return VRM_MODEL_CACHE.get(vrmUrl);
 }
 
 async function assetExists(url) {
-  try {
-    const response = await fetch(url, { method: "HEAD" });
-    return response.ok;
-  } catch {
-    return false;
+  if (!VRMA_ASSET_EXISTS_CACHE.has(url)) {
+    VRMA_ASSET_EXISTS_CACHE.set(
+      url,
+      (async () => {
+        try {
+          const response = await fetch(url, { method: "HEAD" });
+          return response.ok;
+        } catch {
+          return false;
+        }
+      })(),
+    );
   }
+
+  return VRMA_ASSET_EXISTS_CACHE.get(url);
 }
 
 function loadVRMAClip(url, vrm) {
@@ -129,6 +168,38 @@ function sanitizeVRMClip(clip) {
   return new AnimationClip(`${clip.name}_sanitized`, clip.duration, sanitizedTracks);
 }
 
+function getVRMAClipCacheKey(vrmUrl, url) {
+  return `${vrmUrl}::${url}`;
+}
+
+async function loadCachedVRMAClip({ actionName, url, vrm, vrmUrl }) {
+  const cacheKey = getVRMAClipCacheKey(vrmUrl, url);
+
+  if (!VRMA_CLIP_CACHE.has(cacheKey)) {
+    VRMA_CLIP_CACHE.set(
+      cacheKey,
+      (async () => {
+        const exists = await assetExists(url);
+
+        if (!exists) {
+          return null;
+        }
+
+        try {
+          const clip = await loadVRMAClip(url, vrm);
+          return sanitizeVRMClip(clip);
+        } catch (error) {
+          console.warn(`Failed to load VRMA for ${actionName}`, error);
+          VRMA_CLIP_CACHE.delete(cacheKey);
+          return null;
+        }
+      })(),
+    );
+  }
+
+  return VRMA_CLIP_CACHE.get(cacheKey);
+}
+
 function useVRMModel(vrmUrl) {
   const [state, setState] = useState({ error: null, loading: true, vrm: null });
 
@@ -166,6 +237,22 @@ function useVRMModel(vrmUrl) {
   }, [vrmUrl]);
 
   return state;
+}
+
+function CameraZoomController({ controlsRef, zoomLevel }) {
+  const { camera } = useThree();
+
+  useEffect(() => {
+    if (!("zoom" in camera)) {
+      return;
+    }
+
+    camera.zoom = zoomLevel;
+    camera.updateProjectionMatrix();
+    controlsRef.current?.update();
+  }, [camera, controlsRef, zoomLevel]);
+
+  return null;
 }
 
 function VRMAvatar({
@@ -458,6 +545,60 @@ function VRMAvatar({
     if (rightUpperLeg) rightUpperLeg.rotation.set(0, 0, 0);
 
     switch (procedural.action) {
+      case "thinking":
+        if (head) head.rotation.y = Math.sin(time * 0.8) * 0.02;
+        if (neck) neck.rotation.z = -0.02;
+        if (rightUpperArm) rightUpperArm.rotation.z = -0.22;
+        break;
+      case "lookAround":
+        if (head) head.rotation.y = Math.sin(time * 1.4) * 0.18;
+        if (chest) chest.rotation.y = Math.sin(time * 1.4) * 0.06;
+        break;
+      case "clapping":
+        if (rightUpperArm) rightUpperArm.rotation.z = -0.55;
+        if (leftUpperArm) leftUpperArm.rotation.z = 0.55;
+        if (rightLowerArm) rightLowerArm.rotation.z = -0.12 + Math.sin(time * 5) * 0.14;
+        if (leftLowerArm) leftLowerArm.rotation.z = 0.12 - Math.sin(time * 5) * 0.14;
+        break;
+      case "goodbye":
+        if (rightUpperArm) rightUpperArm.rotation.z = -0.6;
+        if (rightLowerArm) rightLowerArm.rotation.z = -0.12 + Math.sin(time * 3.2) * 0.08;
+        break;
+      case "jump":
+        if (spine) spine.rotation.x = 0.04;
+        if (leftUpperLeg) leftUpperLeg.rotation.x = -0.2;
+        if (rightUpperLeg) rightUpperLeg.rotation.x = -0.2;
+        break;
+      case "angry":
+        if (head) head.rotation.x = -0.03;
+        if (chest) chest.rotation.x = 0.03;
+        if (rightUpperArm) rightUpperArm.rotation.z = -0.18;
+        if (leftUpperArm) leftUpperArm.rotation.z = 0.18;
+        break;
+      case "blush":
+        if (head) {
+          head.rotation.z = 0.03;
+          head.rotation.y = Math.sin(time * 0.8) * 0.012;
+        }
+        if (neck) neck.rotation.z = 0.02;
+        break;
+      case "sad":
+        if (head) head.rotation.x = 0.08;
+        if (neck) neck.rotation.x = 0.03;
+        if (chest) chest.rotation.x = -0.02;
+        break;
+      case "sleepy":
+        if (head) {
+          head.rotation.x = 0.06;
+          head.rotation.z = Math.sin(time * 0.5) * 0.02;
+        }
+        if (spine) spine.rotation.x = 0.03;
+        break;
+      case "surprised":
+        if (head) head.rotation.x = -0.04;
+        if (rightUpperArm) rightUpperArm.rotation.z = -0.26;
+        if (leftUpperArm) leftUpperArm.rotation.z = 0.26;
+        break;
       case "pose":
         if (head) {
           head.rotation.z = -0.03 + Math.sin(time * 1.1) * 0.008;
@@ -498,6 +639,7 @@ function VRMAvatar({
         if (head) head.rotation.x = 0.03;
         break;
       case "idle":
+      case "relax":
       default:
         if (spine) spine.rotation.x = Math.sin(time * 1.2) * 0.008;
         if (chest) chest.rotation.x = Math.sin(time * 1.2) * 0.012;
@@ -538,60 +680,104 @@ export function BuddyVRM({
   const { error, loading, vrm } = useVRMModel(vrmUrl);
   const [loadedActions, setLoadedActions] = useState({});
   const [actionsReady, setActionsReady] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(FORCED_CAMERA_ZOOM);
+  const controlsRef = useRef(null);
+  const loadedActionNamesRef = useRef(new Set());
   const modelConfig = MODEL_CONFIGS[vrmUrl] ?? MODEL_CONFIGS[DEFAULT_VRM_URL];
+
+  useEffect(() => {
+    setZoomLevel(FORCED_CAMERA_ZOOM);
+  }, [vrmUrl]);
 
   useEffect(() => {
     if (!vrm) {
       setLoadedActions({});
       setActionsReady(false);
+      loadedActionNamesRef.current = new Set();
       return;
     }
 
     if (modelConfig.preferProceduralOnly) {
       setLoadedActions({});
       setActionsReady(true);
+      loadedActionNamesRef.current = new Set();
       return;
     }
 
     let cancelled = false;
     setActionsReady(false);
+    loadedActionNamesRef.current = new Set();
 
-    Promise.all(
-      Object.entries(ACTION_LIBRARY)
-        .filter(([, actionConfig]) => actionConfig.useClip)
-        .map(async ([actionName, actionConfig]) => {
-          const exists = await assetExists(actionConfig.url);
+    const idleConfig = ACTION_LIBRARY[DEFAULT_ACTION];
 
-          if (!exists) {
-            return [actionName, null];
-          }
-
-          try {
-            const clip = await loadVRMAClip(actionConfig.url, vrm);
-            return [actionName, sanitizeVRMClip(clip)];
-          } catch (error) {
-            console.warn(`Failed to load VRMA for ${actionName}`, error);
-            return [actionName, null];
-          }
-        }),
-    ).then((entries) => {
+    loadCachedVRMAClip({
+      actionName: DEFAULT_ACTION,
+      url: idleConfig.url,
+      vrm,
+      vrmUrl,
+    }).then((idleClip) => {
       if (cancelled) return;
 
-      setLoadedActions(
-        entries.reduce((accumulator, [actionName, clip]) => {
-          if (clip) {
-            accumulator[actionName] = clip;
+      const nextActions = {};
+
+      if (idleClip) {
+        Object.entries(ACTION_LIBRARY).forEach(([actionName, actionConfig]) => {
+          if (actionConfig.url === idleConfig.url) {
+            nextActions[actionName] = idleClip;
+            loadedActionNamesRef.current.add(actionName);
           }
-          return accumulator;
-        }, {}),
-      );
+        });
+      }
+
+      setLoadedActions(nextActions);
       setActionsReady(true);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [modelConfig.preferProceduralOnly, vrm]);
+  }, [modelConfig.preferProceduralOnly, vrm, vrmUrl]);
+
+  useEffect(() => {
+    if (!vrm || modelConfig.preferProceduralOnly) {
+      return;
+    }
+
+    const nextAction = ACTION_LIBRARY[currentAction] ? currentAction : DEFAULT_ACTION;
+    const actionConfig = ACTION_LIBRARY[nextAction];
+
+    if (!actionConfig?.useClip || loadedActionNamesRef.current.has(nextAction)) {
+      return;
+    }
+
+    let cancelled = false;
+
+    loadCachedVRMAClip({
+      actionName: nextAction,
+      url: actionConfig.url,
+      vrm,
+      vrmUrl,
+    }).then((clip) => {
+      if (cancelled || !clip) return;
+
+      setLoadedActions((current) => {
+        const next = { ...current };
+
+        Object.entries(ACTION_LIBRARY).forEach(([actionName, config]) => {
+          if (config.url === actionConfig.url) {
+            next[actionName] = clip;
+            loadedActionNamesRef.current.add(actionName);
+          }
+        });
+
+        return next;
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentAction, modelConfig.preferProceduralOnly, vrm, vrmUrl]);
 
   useEffect(() => {
     if (!vrm || loading || !actionsReady) {
@@ -604,16 +790,39 @@ export function BuddyVRM({
   return (
     <div className={`relative h-[540px] overflow-hidden rounded-[1.75rem] border border-white/80 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 ${className}`}>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12),transparent_55%)]" />
+      <div className="absolute right-4 top-4 z-20 flex items-center gap-2 rounded-2xl border border-white/15 bg-slate-950/70 p-2 text-white shadow-lg backdrop-blur">
+        <button
+          className="grid h-9 w-9 place-items-center rounded-xl bg-white/10 text-lg font-black transition hover:bg-white/20"
+          onClick={() => setZoomLevel((value) => Math.min(MAX_CAMERA_ZOOM, value + 20))}
+          type="button"
+        >
+          +
+        </button>
+        <button
+          className="grid h-9 min-w-[58px] place-items-center rounded-xl bg-white/10 px-2 text-xs font-black transition hover:bg-white/20"
+          onClick={() => setZoomLevel(FORCED_CAMERA_ZOOM)}
+          type="button"
+        >
+          Reset
+        </button>
+        <button
+          className="grid h-9 w-9 place-items-center rounded-xl bg-white/10 text-lg font-black transition hover:bg-white/20"
+          onClick={() => setZoomLevel((value) => Math.max(MIN_CAMERA_ZOOM, value - 20))}
+          type="button"
+        >
+          -
+        </button>
+      </div>
 
       {loading && (
         <div className="absolute inset-0 z-10 flex items-center justify-center px-6 text-center text-sm font-semibold text-white/80">
-          Dang tai VRM va VRMA...
+          Đang tải VRM và VRMA...
         </div>
       )}
 
       {error && !loading ? (
         <div className="absolute inset-4 z-10 rounded-2xl border border-white/20 bg-slate-950/70 p-4 text-sm font-semibold text-white/80">
-          Khong the tai VRM tu duong dan hien tai. Buddy Room dang cho file model hop le.
+          Không thể tải VRM từ đường dẫn hiện tại. Buddy Room đang chờ file model hợp lệ.
         </div>
       ) : null}
 
@@ -623,6 +832,7 @@ export function BuddyVRM({
         <directionalLight color="#60a5fa" intensity={modelConfig.rimLightIntensity} position={[-3, 2, 2]} />
 
         <Suspense fallback={null}>
+          <CameraZoomController controlsRef={controlsRef} zoomLevel={zoomLevel} />
           {vrm ? (
             <VRMAvatar
               actionNonce={actionNonce}
@@ -637,7 +847,18 @@ export function BuddyVRM({
           <Environment preset="city" />
         </Suspense>
 
-        <OrbitControls enablePan={false} enableZoom={false} maxPolarAngle={1.75} minPolarAngle={1.05} target={[0, 1.05, 0]} />
+        <OrbitControls
+          ref={controlsRef}
+          enablePan={false}
+          enableZoom
+          maxPolarAngle={1.75}
+          maxZoom={MAX_CAMERA_ZOOM}
+          minPolarAngle={1.05}
+          minZoom={MIN_CAMERA_ZOOM}
+          target={[0, 1.05, 0]}
+          zoomToCursor
+          zoomSpeed={0.9}
+        />
       </Canvas>
     </div>
   );

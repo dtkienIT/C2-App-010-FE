@@ -31,13 +31,6 @@ const loopSteps = [
   },
 ];
 
-const petStages = [
-  { name: "Khởi đầu", xp: "0 XP", variant: "lumi" as const },
-  { name: "Buddy con", xp: "300 XP", variant: "miu" as const },
-  { name: "Buddy tập trung", xp: "800 XP", variant: "owly" as const },
-  { name: "Buddy tiến hóa", xp: "1500+ XP", variant: "tree" as const },
-];
-
 export function DashboardPage() {
   const { activeBuddy } = useActiveBuddy();
   const dailyQuests = quests.filter((quest) => quest.type === "daily");
@@ -63,8 +56,7 @@ export function DashboardPage() {
                 Học cùng <span className="text-brand-700">AI companion</span>
               </h1>
               <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-600">
-                Học tập hiệu quả hơn nhờ buddy AI đáng yêu nhưng vẫn chuyên nghiệp. Làm quiz, nhận thưởng, nuôi buddy và
-                nhận gợi ý học tiếp theo tiến độ của bạn.
+                Học tập hiệu quả hơn nhờ buddy AI đáng yêu nhưng vẫn chuyên nghiệp. Làm quiz, nhận thưởng, nuôi buddy và nhận gợi ý học tiếp theo tiến độ của bạn.
               </p>
               <div className="mt-7 flex flex-wrap gap-3">
                 <Link className="primary-button" to="/quiz">
@@ -109,24 +101,6 @@ export function DashboardPage() {
             })}
           </div>
           <div className="mx-auto mt-3 hidden h-10 max-w-[72%] rounded-b-[2rem] border-b-4 border-l-4 border-r-4 border-brand-500 lg:block" />
-        </Card>
-
-        <Card className="p-6">
-          <h2 className="text-center text-2xl font-black text-slate-950">Hành trình trưởng thành của buddy</h2>
-          <div className="mt-7 grid gap-4 md:grid-cols-4">
-            {petStages.map((stage, index) => (
-              <div className="relative rounded-[1.5rem] bg-violet-50/70 p-5 text-center" key={stage.name}>
-                {index > 0 ? (
-                  <span className="absolute -left-3 top-1/2 hidden h-3 w-3 -translate-y-1/2 rounded-full bg-brand-500 md:block" />
-                ) : null}
-                <BuddyAvatar className="mx-auto" size="lg" variant={stage.variant} />
-                <h3 className="mt-4 font-black text-brand-800">
-                  {index + 1}. {stage.name}
-                </h3>
-                <p className="mt-1 text-sm font-bold text-brand-600">{stage.xp}</p>
-              </div>
-            ))}
-          </div>
         </Card>
 
         <section className="grid gap-5 md:grid-cols-3">

@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Buddy3DStage } from "../components/buddy/Buddy3DStage";
 import { BuddySelectionGrid } from "../components/buddy/BuddySelectionGrid";
 import { useActiveBuddy } from "../components/buddy/useActiveBuddy";
@@ -7,10 +7,12 @@ import { useCompanionModelStore } from "../components/buddy/useCompanionModelSto
 export function BuddySelectionPage() {
   const { activeBuddy, activeBuddyId, allBuddies, selectBuddy } = useActiveBuddy();
   const { disableBuddy3D } = useCompanionModelStore();
+  const navigate = useNavigate();
 
   function handleSelectBuddy(id: Parameters<typeof selectBuddy>[0]) {
     selectBuddy(id);
     disableBuddy3D();
+    navigate("/buddy-room");
   }
 
   return (
@@ -20,9 +22,7 @@ export function BuddySelectionPage() {
           <div className="relative">
             <p className="soft-chip">AI Study Buddy</p>
             <h1 className="mt-3 text-3xl font-black text-slate-950 md:text-4xl">Chọn Buddy Đồng Hành</h1>
-            <p className="mt-2 max-w-2xl text-base leading-7 text-slate-600 md:text-lg">
-              So sánh nhanh 6 lựa chọn, chọn buddy hợp cách học của bạn, và áp dụng ngay sang phòng companion.
-            </p>
+            <p className="mt-2 max-w-2xl text-base leading-7 text-slate-600 md:text-lg">Chọn buddy phù hợp với cách học của bạn.</p>
             <div className="mt-5 flex flex-wrap gap-2">
               {activeBuddy.tags.slice(0, 4).map((tag) => (
                 <span className="rounded-full border border-white/80 bg-white/80 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-slate-600" key={tag}>
@@ -36,7 +36,13 @@ export function BuddySelectionPage() {
                 <p className="mt-1 text-xl font-black text-slate-950">{activeBuddy.name}</p>
               </div>
               <Link className="secondary-button" to="/buddy-room">
-                Vào phòng buddy
+                Vào Buddy Room
+              </Link>
+              <Link className="secondary-button" to="/buddy-3d">
+                Mở Buddy 3D
+              </Link>
+              <Link className="secondary-button" to="/achievements">
+                Xem thành tích
               </Link>
             </div>
           </div>

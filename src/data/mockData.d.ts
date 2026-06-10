@@ -68,7 +68,25 @@ export type Reward = {
   unlocked: boolean;
 };
 
-export type CompanionModelAction = "idle" | "thinking" | "happy" | "sad" | "speak" | "wave" | "focus" | "celebrate";
+export type CompanionModelAction =
+  | "idle"
+  | "relax"
+  | "thinking"
+  | "lookAround"
+  | "clapping"
+  | "goodbye"
+  | "jump"
+  | "angry"
+  | "blush"
+  | "sad"
+  | "sleepy"
+  | "surprised"
+  | "greeting"
+  | "peace"
+  | "shoot"
+  | "spin"
+  | "pose"
+  | "squat";
 
 export type CompanionModel = {
   id: string;
