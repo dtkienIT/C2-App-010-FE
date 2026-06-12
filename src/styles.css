@@ -1,0 +1,325 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+  }
+
+  :root,
+  html[data-resolved-theme="light"] {
+    --background: 210 45% 98%;
+    --foreground: 222 47% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 14%;
+    --muted: 210 38% 95%;
+    --muted-foreground: 220 15% 42%;
+    --border: 214 30% 88%;
+    --input: 214 30% 88%;
+    --primary: 254 78% 61%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 168 76% 40%;
+    --accent-foreground: 0 0% 100%;
+    --overlay: 222 47% 12%;
+    --ring: 254 78% 61%;
+    --success: 160 84% 39%;
+    --warning: 36 92% 54%;
+    --danger: 351 89% 60%;
+    --page-glow-1: rgba(35, 169, 145, 0.12);
+    --page-glow-2: rgba(19, 88, 214, 0.08);
+    --app-grid-x: rgba(14, 165, 233, 0.04);
+    --app-grid-y: rgba(20, 184, 166, 0.045);
+    --app-surface: #f7f8fc;
+    --auth-surface: #f7f8fc;
+    --hero-surface-start: rgba(245, 243, 255, 0.98);
+    --hero-surface-mid: rgba(255, 255, 255, 0.96);
+    --hero-surface-end: rgba(239, 246, 255, 0.94);
+    --surface-soft: rgba(255, 255, 255, 0.78);
+    --surface-softer: rgba(248, 250, 252, 0.92);
+    --primary-soft: rgba(139, 92, 246, 0.12);
+    --success-soft: rgba(16, 185, 129, 0.14);
+    --warning-soft: rgba(249, 115, 22, 0.14);
+    --surface-strong: rgba(15, 23, 42, 0.9);
+    --surface-accent: rgba(139, 92, 246, 0.16);
+    --room-shell-start: rgba(15, 23, 42, 0.95);
+    --room-shell-end: rgba(30, 41, 59, 0.96);
+    --room-panel: rgba(15, 23, 42, 0.72);
+    --room-panel-border: rgba(255, 255, 255, 0.14);
+    --room-panel-foreground: rgba(255, 255, 255, 0.94);
+    --room-control: rgba(255, 255, 255, 0.12);
+    --room-control-hover: rgba(255, 255, 255, 0.22);
+    --room-floor: #d7dee8;
+    --room-floor-opacity: 0.88;
+    --room-shadow-opacity: 0.2;
+    --room-bubble: rgba(255, 255, 255, 0.9);
+    --room-bubble-foreground: rgba(15, 23, 42, 0.9);
+    --room-bubble-badge: rgba(15, 23, 42, 0.94);
+    --room-bubble-badge-foreground: rgba(255, 255, 255, 0.98);
+    --room-bubble-tail-border: rgba(255, 255, 255, 0.85);
+    color: hsl(var(--foreground));
+    background: hsl(var(--background));
+    font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  }
+
+  html[data-resolved-theme="dark"] {
+    --background: 222 34% 12%;
+    --foreground: 215 28% 88%;
+    --card: 223 31% 16%;
+    --card-foreground: 215 28% 88%;
+    --muted: 222 22% 20%;
+    --muted-foreground: 214 16% 68%;
+    --border: 220 20% 28%;
+    --input: 220 20% 28%;
+    --primary: 258 82% 68%;
+    --primary-foreground: 222 47% 12%;
+    --accent: 173 70% 44%;
+    --accent-foreground: 210 40% 96%;
+    --overlay: 222 47% 8%;
+    --ring: 258 82% 68%;
+    --success: 160 84% 44%;
+    --warning: 36 92% 60%;
+    --danger: 351 89% 67%;
+    --page-glow-1: rgba(56, 189, 248, 0.13);
+    --page-glow-2: rgba(45, 212, 191, 0.1);
+    --app-grid-x: rgba(56, 189, 248, 0.05);
+    --app-grid-y: rgba(15, 23, 42, 0.34);
+    --app-surface: #121826;
+    --auth-surface: #101827;
+    --hero-surface-start: rgba(24, 32, 52, 0.96);
+    --hero-surface-mid: rgba(18, 25, 42, 0.98);
+    --hero-surface-end: rgba(22, 30, 46, 0.96);
+    --surface-soft: rgba(30, 41, 59, 0.74);
+    --surface-softer: rgba(15, 23, 42, 0.82);
+    --primary-soft: rgba(139, 92, 246, 0.16);
+    --success-soft: rgba(16, 185, 129, 0.16);
+    --warning-soft: rgba(249, 115, 22, 0.16);
+    --surface-strong: rgba(30, 41, 59, 0.88);
+    --surface-accent: rgba(91, 33, 182, 0.34);
+    --room-shell-start: rgba(23, 31, 52, 0.96);
+    --room-shell-end: rgba(19, 26, 43, 0.98);
+    --room-panel: rgba(11, 18, 32, 0.74);
+    --room-panel-border: rgba(148, 163, 184, 0.18);
+    --room-panel-foreground: rgba(219, 229, 241, 0.9);
+    --room-control: rgba(100, 116, 139, 0.18);
+    --room-control-hover: rgba(100, 116, 139, 0.32);
+    --room-floor: #374151;
+    --room-floor-opacity: 0.94;
+    --room-shadow-opacity: 0.3;
+    --room-bubble: rgba(17, 24, 39, 0.88);
+    --room-bubble-foreground: rgba(226, 232, 240, 0.92);
+    --room-bubble-badge: rgba(129, 140, 248, 0.22);
+    --room-bubble-badge-foreground: rgba(224, 231, 255, 0.9);
+    --room-bubble-tail-border: rgba(71, 85, 105, 0.8);
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at top right, var(--page-glow-1), transparent 28rem),
+      radial-gradient(circle at bottom left, var(--page-glow-2), transparent 30rem),
+      hsl(var(--background));
+    color: hsl(var(--foreground));
+    @apply antialiased;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  *:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Sora", ui-sans-serif, system-ui, sans-serif;
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer components {
+  .app-shell {
+    background:
+      linear-gradient(var(--app-grid-y) 1px, transparent 1px),
+      linear-gradient(90deg, var(--app-grid-x) 1px, transparent 1px),
+      radial-gradient(circle at 88% 0%, var(--page-glow-1), transparent 30rem),
+      radial-gradient(circle at 0% 90%, var(--page-glow-2), transparent 34rem),
+      var(--app-surface);
+    background-size: 44px 44px, 44px 44px, auto, auto, auto;
+  }
+
+  .app-card {
+    @apply rounded-xl text-card-foreground shadow-soft backdrop-blur;
+    border: 1px solid hsl(var(--border) / 0.8);
+    background-color: hsl(var(--card) / 0.88);
+  }
+
+  .pet-avatar {
+    @apply relative grid shrink-0 place-items-center overflow-hidden rounded-2xl shadow-lift;
+  }
+
+  .auth-shell {
+    position: relative;
+    overflow: hidden;
+    background:
+      linear-gradient(var(--app-grid-y) 1px, transparent 1px),
+      linear-gradient(90deg, var(--app-grid-y) 1px, transparent 1px),
+      radial-gradient(circle at top left, var(--page-glow-1), transparent 30rem),
+      radial-gradient(circle at bottom right, var(--page-glow-2), transparent 32rem),
+      var(--auth-surface);
+    background-size: 42px 42px, 42px 42px, auto, auto, auto;
+  }
+
+  .auth-glass {
+    @apply rounded-[1.75rem] shadow-[0_30px_80px_rgba(7,13,28,0.38)] backdrop-blur-xl;
+    border: 1px solid hsl(var(--border) / 0.45);
+    background-color: hsl(var(--card) / 0.12);
+  }
+
+  .auth-story-panel {
+    @apply rounded-[1.25rem] p-8 text-card-foreground shadow-soft backdrop-blur;
+    border: 1px solid hsl(var(--border) / 0.8);
+    background-color: hsl(var(--card) / 0.8);
+  }
+
+  .auth-form-panel {
+    @apply rounded-[1.25rem] bg-card p-5 text-card-foreground shadow-[0_28px_70px_rgba(15,23,42,0.12)] sm:p-7;
+    border: 1px solid hsl(var(--border) / 0.8);
+  }
+
+  .auth-metric {
+    @apply rounded-2xl border border-border bg-card p-4 shadow-sm;
+  }
+
+  .auth-metric p {
+    @apply text-xs font-black uppercase text-muted-foreground;
+  }
+
+  .auth-metric strong {
+    @apply mt-2 block text-lg font-black text-foreground;
+  }
+
+  .auth-input {
+    @apply mt-2 w-full rounded-xl border border-input bg-background px-4 py-3.5 text-[15px] font-semibold text-foreground outline-none placeholder:text-muted-foreground focus:border-primary;
+  }
+
+  .auth-input:focus {
+    box-shadow: 0 0 0 4px hsl(var(--ring) / 0.15);
+  }
+
+  .auth-social {
+    @apply grid h-11 w-11 place-items-center rounded-full text-card-foreground transition hover:-translate-y-0.5;
+    border: 1px solid hsl(var(--border) / 0.4);
+    background-color: hsl(var(--card) / 0.2);
+  }
+
+  .auth-social:hover {
+    background-color: hsl(var(--card) / 0.35);
+  }
+
+  .auth-shell h1,
+  .auth-shell h2,
+  .auth-shell p,
+  .auth-shell span,
+  .auth-shell label {
+    text-wrap: balance;
+  }
+
+  .gradient-card {
+    @apply rounded-2xl text-card-foreground shadow-soft;
+    border: 1px solid hsl(var(--border) / 0.7);
+    background-image: linear-gradient(135deg, hsl(var(--card)), hsl(var(--card)), hsl(var(--muted) / 0.7));
+  }
+
+  .hero-surface {
+    @apply shadow-soft;
+    border: 1px solid hsl(var(--border) / 0.8);
+    background-image: linear-gradient(135deg, var(--hero-surface-start), var(--hero-surface-mid), var(--hero-surface-end));
+  }
+
+  .soft-panel {
+    @apply shadow-sm backdrop-blur;
+    border: 1px solid hsl(var(--border) / 0.75);
+    background-color: var(--surface-soft);
+  }
+
+  .soft-tile {
+    background-color: var(--surface-softer);
+  }
+
+  .primary-soft {
+    background-color: var(--primary-soft);
+  }
+
+  .success-soft {
+    background-color: var(--success-soft);
+  }
+
+  .warning-soft {
+    background-color: var(--warning-soft);
+  }
+
+  .surface-strong {
+    background-color: var(--surface-strong);
+  }
+
+  .surface-accent {
+    background-color: var(--surface-accent);
+  }
+
+  .primary-button {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 font-semibold text-primary-foreground shadow-lift transition hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0;
+  }
+
+  .secondary-button {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-card px-5 py-3 font-semibold text-foreground shadow-sm transition hover:-translate-y-0.5 hover:bg-muted hover:text-foreground;
+    border: 1px solid hsl(var(--border));
+  }
+
+  .soft-chip {
+    @apply inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm font-semibold text-muted-foreground;
+  }
+
+  .progress-track {
+    @apply h-2.5 overflow-hidden rounded-full bg-muted;
+  }
+
+  .progress-fill {
+    @apply h-full rounded-full bg-gradient-to-r from-accent to-primary;
+  }
+
+  .theme-toggle {
+    @apply inline-flex items-center gap-1 rounded-full border border-border bg-card p-1 shadow-sm;
+  }
+
+  .theme-toggle-compact {
+    @apply gap-0.5;
+  }
+
+  .theme-toggle-option {
+    @apply inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-bold text-muted-foreground transition hover:bg-muted hover:text-foreground;
+  }
+
+  .theme-toggle-compact .theme-toggle-option {
+    @apply px-2.5 py-2;
+  }
+
+  .theme-toggle-option-active {
+    @apply bg-primary text-primary-foreground shadow-sm;
+  }
+}

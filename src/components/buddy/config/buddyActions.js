@@ -1,0 +1,25 @@
+export const ACTION_LIBRARY = {
+  idle: { format: "vrma", loop: true, oneShotDuration: 0, url: "/animations/Relax.vrma", useClip: true },
+  relax: { format: "vrma", loop: true, oneShotDuration: 0, url: "/animations/Relax.vrma", useClip: true },
+  thinking: { format: "vrma", loop: true, oneShotDuration: 0, url: "/animations/Thinking.vrma", useClip: true },
+  talking: { format: "vrma", loop: true, oneShotDuration: 0, url: "/animations/Thinking.vrma", useClip: true },
+  lookAround: { format: "vrma", loop: true, oneShotDuration: 0, url: "/animations/LookAround.vrma", useClip: true },
+  clapping: { format: "vrma", loop: false, oneShotDuration: 2.4, url: "/animations/Clapping.vrma", useClip: true },
+  goodbye: { format: "vrma", loop: false, oneShotDuration: 2.4, url: "/animations/Goodbye.vrma", useClip: true },
+  jump: { format: "vrma", loop: false, oneShotDuration: 1.8, url: "/animations/Jump.vrma", useClip: true },
+  angry: { format: "vrma", loop: false, oneShotDuration: 1.8, url: "/animations/Angry.vrma", useClip: true },
+  blush: { format: "vrma", loop: false, oneShotDuration: 1.8, url: "/animations/Blush.vrma", useClip: true },
+  sad: { format: "vrma", loop: false, oneShotDuration: 1.8, url: "/animations/Sad.vrma", useClip: true },
+  sleepy: { format: "vrma", loop: true, oneShotDuration: 0, url: "/animations/Sleepy.vrma", useClip: true },
+  surprised: { format: "vrma", loop: false, oneShotDuration: 1.8, url: "/animations/Surprised.vrma", useClip: true },
+  greeting: { format: "vrma", loop: false, oneShotDuration: 2.4, url: "/animations/vrma_02.vrma", useClip: true },
+  peace: { format: "vrma", loop: false, oneShotDuration: 2.4, url: "/animations/vrma_03.vrma", useClip: true },
+  shoot: { format: "vrma", loop: false, oneShotDuration: 2.1, url: "/animations/vrma_04.vrma", useClip: true },
+  spin: { format: "vrma", loop: false, oneShotDuration: 2.1, url: "/animations/vrma_05.vrma", useClip: true },
+  pose: { format: "vrma", loop: true, oneShotDuration: 0, url: "/animations/vrma_06.vrma", useClip: true },
+  catwalk: { format: "mixamo-fbx", loop: false, oneShotDuration: 2.6, url: "/animations/catwalk.fbx", useClip: true },
+  squat: { format: "vrma", loop: false, oneShotDuration: 2, url: "/animations/vrma_07.vrma", useClip: true },
+  rasengan: { format: "mixamo-fbx", loop: false, oneShotDuration: 2.8, url: "/animations/rasengananimation.fbx", useClip: true },
+};
+
+export const DEFAULT_ACTION = "idle";
