@@ -1,212 +1,71 @@
 import React from "react";
-import { Environment, OrbitControls } from "@react-three/drei";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { VRMLoaderPlugin } from "@pixiv/three-vrm";
-import { VRMAnimationLoaderPlugin, createVRMAnimationClip } from "@pixiv/three-vrm-animation";
-import { Suspense, useEffect, useRef, useState } from "react";
-import { AnimationClip, AnimationMixer, Box3, LoopOnce, LoopRepeat, Vector3 } from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { useFrame } from "@react-three/fiber";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { AnimationMixer, LoopOnce, LoopRepeat } from "three";
+import { NarutoVRM } from "./NarutoVRM";
+import { ACTION_LIBRARY, DEFAULT_ACTION } from "./config/buddyActions";
+import { DEFAULT_VRM_URL, MODEL_CONFIGS, NARUTO_VRM_URL } from "./config/buddyModels";
+import { logActionWorldScale } from "./utils/debugTransform";
+import { getStableModelFit } from "./utils/fitVRMModel";
+import { loadMixamoAnimationClip } from "./utils/loadMixamoAnimation";
+import { getCachedVRMModelState, loadVRMModel } from "./utils/loadVRMModel";
+import { loadVRMAClip } from "./utils/loadVRMAClip";
+import { sanitizeVRMClip } from "./utils/sanitizeAnimationClip";
 
-const ACTION_LIBRARY = {
-  idle: { loop: true, oneShotDuration: 0, url: "/animations/Relax.vrma", useClip: true },
-  relax: { loop: true, oneShotDuration: 0, url: "/animations/Relax.vrma", useClip: true },
-  thinking: { loop: true, oneShotDuration: 0, url: "/animations/Thinking.vrma", useClip: true },
-  lookAround: { loop: true, oneShotDuration: 0, url: "/animations/LookAround.vrma", useClip: true },
-  clapping: { loop: false, oneShotDuration: 2.4, url: "/animations/Clapping.vrma", useClip: true },
-  goodbye: { loop: false, oneShotDuration: 2.4, url: "/animations/Goodbye.vrma", useClip: true },
-  jump: { loop: false, oneShotDuration: 1.8, url: "/animations/Jump.vrma", useClip: true },
-  angry: { loop: false, oneShotDuration: 1.8, url: "/animations/Angry.vrma", useClip: true },
-  blush: { loop: false, oneShotDuration: 1.8, url: "/animations/Blush.vrma", useClip: true },
-  sad: { loop: false, oneShotDuration: 1.8, url: "/animations/Sad.vrma", useClip: true },
-  sleepy: { loop: true, oneShotDuration: 0, url: "/animations/Sleepy.vrma", useClip: true },
-  surprised: { loop: false, oneShotDuration: 1.8, url: "/animations/Surprised.vrma", useClip: true },
-  greeting: { loop: false, oneShotDuration: 2.4, url: "/animations/vrma_02.vrma", useClip: true },
-  peace: { loop: false, oneShotDuration: 2.4, url: "/animations/vrma_03.vrma", useClip: true },
-  shoot: { loop: false, oneShotDuration: 2.1, url: "/animations/vrma_04.vrma", useClip: true },
-  spin: { loop: false, oneShotDuration: 2.1, url: "/animations/vrma_05.vrma", useClip: true },
-  pose: { loop: true, oneShotDuration: 0, url: "/animations/vrma_06.vrma", useClip: true },
-  squat: { loop: false, oneShotDuration: 2, url: "/animations/vrma_07.vrma", useClip: true },
-};
+const MOTION_CLIP_CACHE = new Map();
+const CORE_ACTIONS = [DEFAULT_ACTION, "catwalk", "talking"];
+const COMMON_ACTIONS = ["pose", "relax", "thinking", "lookAround", "greeting", "clapping", "goodbye"];
+const RARE_ACTIONS = new Set(["rasengan", "spin", "shoot", "squat", "jump", "angry", "surprised"]);
 
-const DEFAULT_ACTION = "idle";
-const DEFAULT_VRM_URL = "/vrm-models/vita.vrm";
-const TARGET_HEIGHT = 2;
-const FORCED_CAMERA_ZOOM = 180;
-const MIN_CAMERA_ZOOM = FORCED_CAMERA_ZOOM;
-const MAX_CAMERA_ZOOM = 420;
-const VRM_MODEL_CACHE = new Map();
-const VRMA_ASSET_EXISTS_CACHE = new Map();
-const VRMA_CLIP_CACHE = new Map();
-const MODEL_CONFIGS = {
-  "/vrm-models/naruto.vrm": { ambientIntensity: 1.02, keyLightIntensity: 1.82, preferProceduralOnly: false, rimLightIntensity: 0.85, rotationY: Math.PI, scaleMultiplier: 1, targetHeight: TARGET_HEIGHT, yOffset: 0 },
-  "/vrm-models/8590256991748008892.vrm": { ambientIntensity: 1, keyLightIntensity: 1.75, preferProceduralOnly: false, rimLightIntensity: 0.82, rotationY: Math.PI, scaleMultiplier: 1, targetHeight: TARGET_HEIGHT, yOffset: 0 },
-  "/vrm-models/8329890252317737768.vrm": { ambientIntensity: 1, keyLightIntensity: 1.75, preferProceduralOnly: false, rimLightIntensity: 0.82, rotationY: Math.PI, scaleMultiplier: 1, targetHeight: TARGET_HEIGHT, yOffset: 0 },
-  "/vrm-models/sample.vrm": { ambientIntensity: 1, keyLightIntensity: 1.8, preferProceduralOnly: false, rimLightIntensity: 0.8, rotationY: Math.PI, scaleMultiplier: 1, targetHeight: TARGET_HEIGHT, yOffset: 0 },
-  "/vrm-models/vita.vrm": { ambientIntensity: 1.1, keyLightIntensity: 2, preferProceduralOnly: false, rimLightIntensity: 0.95, rotationY: Math.PI, scaleMultiplier: 1, targetHeight: TARGET_HEIGHT, yOffset: 0 },
-  "/vrm-models/vivi.vrm": { ambientIntensity: 1.05, keyLightIntensity: 1.95, preferProceduralOnly: false, rimLightIntensity: 0.9, rotationY: Math.PI, scaleMultiplier: 1, targetHeight: TARGET_HEIGHT, yOffset: 0 },
-  "/vrm-models/buddy-1.vrm": { ambientIntensity: 0.78, keyLightIntensity: 1.3, preferProceduralOnly: false, rimLightIntensity: 0.48, rotationY: 0, scaleMultiplier: 1, targetHeight: TARGET_HEIGHT, yOffset: -0.04 },
-  "/vrm-models/6493143135142452442.vrm": { ambientIntensity: 0.9, keyLightIntensity: 1.55, preferProceduralOnly: false, rimLightIntensity: 0.62, rotationY: Math.PI, scaleMultiplier: 1, targetHeight: TARGET_HEIGHT, yOffset: -0.02 },
-};
+function scheduleBackgroundTask(task) {
+  if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+    const idleId = window.requestIdleCallback(() => {
+      void task();
+    });
 
-function getStableModelFit(vrm, modelConfig) {
-  vrm.scene.updateMatrixWorld(true);
-
-  const bounds = new Box3().setFromObject(vrm.scene);
-  const size = new Vector3();
-  const center = new Vector3();
-
-  bounds.getSize(size);
-  bounds.getCenter(center);
-  const measuredHeight = Math.max(size.y * (modelConfig?.scaleMultiplier ?? 1), 0.1);
-
-  const fit = {
-    center,
-    height: Math.max(measuredHeight, 0.1),
-    minY: bounds.min.y,
-  };
-
-  console.debug("[BuddyVRM] model fit", {
-    height: Number(fit.height.toFixed(4)),
-    minY: Number(fit.minY.toFixed(4)),
-    scaleMultiplier: modelConfig?.scaleMultiplier ?? 1,
-  });
-
-  return fit;
-}
-
-function loadVRMModel(vrmUrl) {
-  if (!VRM_MODEL_CACHE.has(vrmUrl)) {
-    VRM_MODEL_CACHE.set(
-      vrmUrl,
-      new Promise((resolve, reject) => {
-        const loader = new GLTFLoader();
-        loader.register((parser) => new VRMLoaderPlugin(parser));
-
-        loader.load(
-          vrmUrl,
-          (gltf) => {
-            const vrm = gltf.userData.vrm;
-
-            if (!vrm) {
-              reject(new Error(`VRM not found in ${vrmUrl}`));
-              return;
-            }
-
-            const modelConfig = MODEL_CONFIGS[vrmUrl] ?? MODEL_CONFIGS[DEFAULT_VRM_URL];
-            vrm.scene.rotation.y = modelConfig?.rotationY ?? 0;
-            resolve(vrm);
-          },
-          undefined,
-          (error) => {
-            VRM_MODEL_CACHE.delete(vrmUrl);
-            reject(error);
-          },
-        );
-      }),
-    );
+    return () => window.cancelIdleCallback?.(idleId);
   }
 
-  return VRM_MODEL_CACHE.get(vrmUrl);
+  const timeoutId = window.setTimeout(() => {
+    void task();
+  }, 120);
+
+  return () => window.clearTimeout(timeoutId);
 }
 
-async function assetExists(url) {
-  if (!VRMA_ASSET_EXISTS_CACHE.has(url)) {
-    VRMA_ASSET_EXISTS_CACHE.set(
-      url,
-      (async () => {
-        try {
-          const response = await fetch(url, { method: "HEAD" });
-          return response.ok;
-        } catch {
-          return false;
-        }
-      })(),
-    );
-  }
-
-  return VRMA_ASSET_EXISTS_CACHE.get(url);
+function getMotionClipCacheKey(vrmUrl, url, format) {
+  return `${format}::${vrmUrl}::${url}`;
 }
 
-function loadVRMAClip(url, vrm) {
-  return new Promise((resolve, reject) => {
-    const loader = new GLTFLoader();
-    loader.register((parser) => new VRMAnimationLoaderPlugin(parser));
+async function loadCachedMotionClip({ actionName, format, url, vrm, vrmUrl }) {
+  const cacheKey = getMotionClipCacheKey(vrmUrl, url, format);
 
-    loader.load(
-      url,
-      (gltf) => {
-        const vrmAnimation = gltf.userData.vrmAnimations?.[0];
-
-        if (!vrmAnimation) {
-          reject(new Error(`VRM animation not found in ${url}`));
-          return;
-        }
-
-        resolve(createVRMAnimationClip(vrmAnimation, vrm));
-      },
-      undefined,
-      reject,
-    );
-  });
-}
-
-function sanitizeVRMClip(clip) {
-  const sanitizedTracks = clip.tracks.flatMap((track) => {
-    if (track.name.endsWith(".scale")) {
-      return [];
-    }
-
-    // Some VRMA files contain bone translation tracks that visually read as squash/stretch.
-    // Dropping all position tracks keeps apparent model size stable across actions.
-    if (track.name.endsWith(".position")) {
-      return [];
-    }
-
-    return [track.clone()];
-  });
-
-  return new AnimationClip(`${clip.name}_sanitized`, clip.duration, sanitizedTracks);
-}
-
-function getVRMAClipCacheKey(vrmUrl, url) {
-  return `${vrmUrl}::${url}`;
-}
-
-async function loadCachedVRMAClip({ actionName, url, vrm, vrmUrl }) {
-  const cacheKey = getVRMAClipCacheKey(vrmUrl, url);
-
-  if (!VRMA_CLIP_CACHE.has(cacheKey)) {
-    VRMA_CLIP_CACHE.set(
+  if (!MOTION_CLIP_CACHE.has(cacheKey)) {
+    MOTION_CLIP_CACHE.set(
       cacheKey,
       (async () => {
-        const exists = await assetExists(url);
-
-        if (!exists) {
-          return null;
-        }
-
         try {
-          const clip = await loadVRMAClip(url, vrm);
+          const clip = format === "mixamo-fbx" ? await loadMixamoAnimationClip(url, vrm) : await loadVRMAClip(url, vrm);
           return sanitizeVRMClip(clip);
         } catch (error) {
-          console.warn(`Failed to load VRMA for ${actionName}`, error);
-          VRMA_CLIP_CACHE.delete(cacheKey);
+          console.warn(`Failed to load motion clip for ${actionName}`, error);
           return null;
         }
       })(),
     );
   }
 
-  return VRMA_CLIP_CACHE.get(cacheKey);
+  return MOTION_CLIP_CACHE.get(cacheKey);
 }
 
 function useVRMModel(vrmUrl) {
-  const [state, setState] = useState({ error: null, loading: true, vrm: null });
+  const [state, setState] = useState(() => getCachedVRMModelState(vrmUrl));
 
   useEffect(() => {
     let cancelled = false;
 
-    setState({ error: null, loading: true, vrm: null });
+    const cachedState = getCachedVRMModelState(vrmUrl);
+    setState(cachedState);
 
     (async () => {
       const urlsToTry = Array.from(new Set([vrmUrl, DEFAULT_VRM_URL]));
@@ -239,46 +98,63 @@ function useVRMModel(vrmUrl) {
   return state;
 }
 
-function CameraZoomController({ controlsRef, zoomLevel }) {
-  const { camera } = useThree();
-
-  useEffect(() => {
-    if (!("zoom" in camera)) {
-      return;
-    }
-
-    camera.zoom = zoomLevel;
-    camera.updateProjectionMatrix();
-    controlsRef.current?.update();
-  }, [camera, controlsRef, zoomLevel]);
-
-  return null;
-}
-
 function VRMAvatar({
   actionNonce,
   currentAction,
+  entranceSequenceId = 0,
   loadedActions,
   modelConfig,
   onActionFinished,
   proceduralEnabled,
+  resolvedActions,
   vrm,
+  vrmUrl,
 }) {
+  const entranceGroupRef = useRef(null);
   const groupRef = useRef(null);
   const mixerRef = useRef(null);
   const activeActionRef = useRef(null);
+  const createdActionsRef = useRef(new Map());
+  const springBoneRestoreRef = useRef(null);
+  const springBoneResumeTimeoutRef = useRef(0);
   const onActionFinishedRef = useRef(onActionFinished);
   const currentActionRef = useRef(DEFAULT_ACTION);
   const currentSourceRef = useRef("clip");
   const proceduralRef = useRef({ action: DEFAULT_ACTION, elapsed: 0 });
   const anchorRef = useRef({
-    descendants: [],
     group: null,
-    hips: null,
-    normalizedRoot: null,
     scene: null,
   });
+  const entranceMotionRef = useRef({
+    active: false,
+    elapsed: 0,
+    fromRotationY: -0.32,
+    fromX: 1.35,
+    targetRotationY: 0,
+    targetX: 0,
+  });
+  const lastEntranceSequenceIdRef = useRef(0);
   const [fit, setFit] = useState(null);
+  const proceduralBones = useMemo(() => {
+    const humanoid = vrm?.humanoid;
+
+    if (!humanoid) {
+      return {};
+    }
+
+    return {
+      chest: humanoid.getNormalizedBoneNode("chest"),
+      head: humanoid.getNormalizedBoneNode("head"),
+      leftLowerArm: humanoid.getNormalizedBoneNode("leftLowerArm"),
+      leftUpperArm: humanoid.getNormalizedBoneNode("leftUpperArm"),
+      leftUpperLeg: humanoid.getNormalizedBoneNode("leftUpperLeg"),
+      neck: humanoid.getNormalizedBoneNode("neck"),
+      rightLowerArm: humanoid.getNormalizedBoneNode("rightLowerArm"),
+      rightUpperArm: humanoid.getNormalizedBoneNode("rightUpperArm"),
+      rightUpperLeg: humanoid.getNormalizedBoneNode("rightUpperLeg"),
+      spine: humanoid.getNormalizedBoneNode("spine"),
+    };
+  }, [vrm]);
 
   useEffect(() => {
     onActionFinishedRef.current = onActionFinished;
@@ -294,8 +170,23 @@ function VRMAvatar({
   const resetRuntimeState = (sceneToRemove) => {
     const mixer = mixerRef.current;
 
+    if (springBoneResumeTimeoutRef.current) {
+      window.clearTimeout(springBoneResumeTimeoutRef.current);
+      springBoneResumeTimeoutRef.current = 0;
+    }
+
+    if (springBoneRestoreRef.current) {
+      springBoneRestoreRef.current();
+      springBoneRestoreRef.current = null;
+    }
+
     activeActionRef.current?.stop();
     mixer?.stopAllAction();
+    createdActionsRef.current.forEach((action) => {
+      action.stop();
+      action.enabled = false;
+    });
+    createdActionsRef.current.clear();
     if (mixer && sceneToRemove) {
       mixer.uncacheRoot(sceneToRemove);
     }
@@ -304,8 +195,11 @@ function VRMAvatar({
     currentActionRef.current = DEFAULT_ACTION;
     currentSourceRef.current = "clip";
     proceduralRef.current = { action: DEFAULT_ACTION, elapsed: 0 };
+    entranceMotionRef.current.active = false;
+    entranceMotionRef.current.elapsed = 0;
     mixerRef.current = null;
 
+    resetNodeTransform(entranceGroupRef.current);
     resetNodeTransform(groupRef.current);
   };
 
@@ -315,47 +209,50 @@ function VRMAvatar({
     resetRuntimeState();
     setFit(null);
 
+    const springBoneManager = vrm.springBoneManager;
+    const suspendSpringBonesOnLoadMs = modelConfig?.suspendSpringBonesOnLoadMs ?? 0;
+    if (suspendSpringBonesOnLoadMs > 0 && springBoneManager && typeof springBoneManager.update === "function") {
+      const originalUpdate = springBoneManager.update.bind(springBoneManager);
+
+      springBoneManager.reset?.();
+      springBoneManager.update = () => {};
+
+      springBoneRestoreRef.current = () => {
+        springBoneManager.update = originalUpdate;
+        springBoneManager.reset?.();
+      };
+
+      springBoneResumeTimeoutRef.current = window.setTimeout(() => {
+        springBoneRestoreRef.current?.();
+        springBoneRestoreRef.current = null;
+        springBoneResumeTimeoutRef.current = 0;
+      }, suspendSpringBonesOnLoadMs);
+    }
+
+    vrm.scene.traverse((node) => {
+      if (!node.isMesh) {
+        return;
+      }
+
+      node.castShadow = true;
+      node.receiveShadow = true;
+    });
+
     let frameId = 0;
 
     frameId = requestAnimationFrame(() => {
       vrm.update(0);
+      vrm.springBoneManager?.reset?.();
       setFit(getStableModelFit(vrm, modelConfig));
     });
 
-    const normalizedRoot = vrm.humanoid?.normalizedHumanBonesRoot ?? null;
-    const hips = vrm.humanoid?.getNormalizedBoneNode("hips") ?? vrm.humanoid?.getRawBoneNode("hips") ?? null;
-    const descendants = [];
-
-    vrm.scene.traverse((node) => {
-      descendants.push({
-        node,
-        position: node.position.clone(),
-        scale: node.scale.clone(),
-      });
-    });
-
     anchorRef.current = {
-      descendants,
       group: groupRef.current
         ? {
             node: groupRef.current,
             position: groupRef.current.position.clone(),
             rotation: groupRef.current.rotation.clone(),
             scale: groupRef.current.scale.clone(),
-          }
-        : null,
-      hips: hips
-        ? {
-            node: hips,
-            position: hips.position.clone(),
-            scale: hips.scale.clone(),
-          }
-        : null,
-      normalizedRoot: normalizedRoot
-        ? {
-            node: normalizedRoot,
-            position: normalizedRoot.position.clone(),
-            scale: normalizedRoot.scale.clone(),
           }
         : null,
       scene: {
@@ -396,25 +293,55 @@ function VRMAvatar({
     const idleClip = loadedActions[DEFAULT_ACTION] ?? null;
     const actionConfig = ACTION_LIBRARY[nextAction] ?? ACTION_LIBRARY[DEFAULT_ACTION];
     const mixer = mixerRef.current;
+    const isClipPending = actionConfig.useClip && !nextClip && !resolvedActions[nextAction];
     currentActionRef.current = nextAction;
 
-    const worldScale = new Vector3();
-    vrm.scene.getWorldScale(worldScale);
-    console.debug("[BuddyVRM] action change", {
-      action: nextAction,
-      worldScale: [Number(worldScale.x.toFixed(4)), Number(worldScale.y.toFixed(4)), Number(worldScale.z.toFixed(4))],
-    });
+    logActionWorldScale(vrm, nextAction);
+
+    const stopNonActiveActions = (activeAction = null) => {
+      createdActionsRef.current.forEach((candidateAction) => {
+        if (!candidateAction || candidateAction === activeAction) {
+          return;
+        }
+
+        candidateAction.fadeOut(0.12);
+        window.setTimeout(() => {
+          if (activeActionRef.current === candidateAction) {
+            return;
+          }
+
+          candidateAction.stop();
+          candidateAction.enabled = false;
+        }, 160);
+      });
+    };
+
+    const getOrCreateAction = (actionName, clip) => {
+      const cachedAction = createdActionsRef.current.get(actionName);
+      if (cachedAction) {
+        return cachedAction;
+      }
+
+      const createdAction = mixer.clipAction(clip);
+      createdActionsRef.current.set(actionName, createdAction);
+      return createdAction;
+    };
 
     if (proceduralOnly) {
       activeActionRef.current?.fadeOut(0.18);
+      stopNonActiveActions();
       activeActionRef.current = null;
       currentSourceRef.current = proceduralEnabled ? "procedural" : "idle";
       proceduralRef.current = { action: nextAction, elapsed: 0 };
       return;
     }
 
+    if (isClipPending) {
+      return;
+    }
+
     if (actionConfig.useClip && nextClip) {
-      const action = mixer.clipAction(nextClip);
+      const action = getOrCreateAction(nextAction, nextClip);
       const previousAction = activeActionRef.current;
       action.reset();
       action.enabled = true;
@@ -427,6 +354,7 @@ function VRMAvatar({
         previousAction.fadeOut(0.18);
       }
 
+      stopNonActiveActions(action);
       activeActionRef.current = action;
       currentSourceRef.current = "clip";
       proceduralRef.current = { action: nextAction, elapsed: 0 };
@@ -434,10 +362,11 @@ function VRMAvatar({
     }
 
     if (!actionConfig.loop && ACTION_LIBRARY[DEFAULT_ACTION].useClip && idleClip) {
-      const idleAction = mixer.clipAction(idleClip);
+      const idleAction = getOrCreateAction(DEFAULT_ACTION, idleClip);
       const previousAction = activeActionRef.current;
       idleAction.reset();
       idleAction.enabled = true;
+      idleAction.clampWhenFinished = false;
       idleAction.setLoop(LoopRepeat, Infinity);
       idleAction.fadeIn(0.18);
       idleAction.play();
@@ -446,6 +375,7 @@ function VRMAvatar({
         previousAction.fadeOut(0.18);
       }
 
+      stopNonActiveActions(idleAction);
       activeActionRef.current = idleAction;
       currentSourceRef.current = "clip";
       proceduralRef.current = { action: DEFAULT_ACTION, elapsed: 0 };
@@ -454,10 +384,20 @@ function VRMAvatar({
     }
 
     activeActionRef.current?.fadeOut(0.18);
+    stopNonActiveActions();
     activeActionRef.current = null;
     currentSourceRef.current = proceduralEnabled ? "procedural" : "idle";
     proceduralRef.current = { action: nextAction, elapsed: 0 };
-  }, [actionNonce, currentAction, loadedActions, modelConfig?.preferProceduralOnly, proceduralEnabled, vrm]);
+  }, [
+    actionNonce,
+    currentAction,
+    loadedActions[DEFAULT_ACTION],
+    loadedActions[currentAction],
+    modelConfig?.preferProceduralOnly,
+    proceduralEnabled,
+    resolvedActions[currentAction],
+    vrm,
+  ]);
 
   const scale = fit ? (modelConfig?.targetHeight ?? 2.1) / fit.height : 1;
 
@@ -472,8 +412,31 @@ function VRMAvatar({
     };
   }, [scale]);
 
+  useEffect(() => {
+    if (!entranceGroupRef.current) {
+      return;
+    }
+
+    if (!entranceSequenceId || entranceSequenceId === lastEntranceSequenceIdRef.current) {
+      return;
+    }
+
+    lastEntranceSequenceIdRef.current = entranceSequenceId;
+    entranceMotionRef.current = {
+      active: true,
+      elapsed: 0,
+      fromRotationY: -0.32,
+      fromX: 1.35,
+      targetRotationY: 0,
+      targetX: 0,
+    };
+
+    entranceGroupRef.current.position.set(1.35, 0, 0);
+    entranceGroupRef.current.rotation.set(0, -0.32, 0);
+  }, [entranceSequenceId]);
+
   const lockAnchorTransform = () => {
-    const { descendants, group, hips, normalizedRoot, scene } = anchorRef.current;
+    const { group, scene } = anchorRef.current;
 
     if (group?.node) {
       group.node.position.copy(group.position);
@@ -486,52 +449,67 @@ function VRMAvatar({
       scene.node.quaternion.copy(scene.quaternion);
       scene.node.scale.copy(scene.scale);
     }
-
-    descendants.forEach(({ node, position, scale }) => {
-      node.position.copy(position);
-      node.scale.copy(scale);
-    });
-
-    if (normalizedRoot?.node) {
-      normalizedRoot.node.position.copy(normalizedRoot.position);
-      normalizedRoot.node.scale.copy(normalizedRoot.scale);
-    }
-
-    if (hips?.node) {
-      hips.node.position.copy(hips.position);
-      hips.node.scale.copy(hips.scale);
-    }
   };
 
   useFrame((_, delta) => {
     if (!vrm) return;
+    const safeDelta = Math.min(delta, 1 / 30);
 
     const mixer = mixerRef.current;
-    const humanoid = vrm.humanoid;
+    const {
+      chest,
+      head,
+      leftLowerArm,
+      leftUpperArm,
+      leftUpperLeg,
+      neck,
+      rightLowerArm,
+      rightUpperArm,
+      rightUpperLeg,
+      spine,
+    } = proceduralBones;
 
-    mixer?.update(delta);
+    mixer?.update(safeDelta);
     lockAnchorTransform();
 
+    const updateEntranceMotion = () => {
+      const entranceMotion = entranceMotionRef.current;
+      const entranceGroup = entranceGroupRef.current;
+
+      if (!entranceGroup) {
+        return;
+      }
+
+      if (entranceMotion.active) {
+        entranceMotion.elapsed += safeDelta;
+        const duration = ACTION_LIBRARY.catwalk.oneShotDuration;
+        const t = Math.min(entranceMotion.elapsed / duration, 1);
+        const eased = 1 - (1 - t) * (1 - t);
+
+        entranceGroup.position.x = entranceMotion.fromX + (entranceMotion.targetX - entranceMotion.fromX) * eased;
+        entranceGroup.rotation.y = entranceMotion.fromRotationY + (entranceMotion.targetRotationY - entranceMotion.fromRotationY) * eased;
+
+        if (t >= 1) {
+          entranceMotion.active = false;
+          entranceGroup.position.x = 0;
+          entranceGroup.rotation.y = 0;
+        }
+      } else {
+        entranceGroup.position.x = 0;
+        entranceGroup.rotation.y = 0;
+      }
+    };
+
     if (currentSourceRef.current !== "procedural") {
-      vrm.update(delta);
+      updateEntranceMotion();
+      vrm.update(safeDelta);
       lockAnchorTransform();
       return;
     }
 
-    const rightUpperArm = humanoid?.getNormalizedBoneNode("rightUpperArm");
-    const rightLowerArm = humanoid?.getNormalizedBoneNode("rightLowerArm");
-    const leftUpperArm = humanoid?.getNormalizedBoneNode("leftUpperArm");
-    const leftLowerArm = humanoid?.getNormalizedBoneNode("leftLowerArm");
-    const spine = humanoid?.getNormalizedBoneNode("spine");
-    const chest = humanoid?.getNormalizedBoneNode("chest");
-    const neck = humanoid?.getNormalizedBoneNode("neck");
-    const head = humanoid?.getNormalizedBoneNode("head");
-    const leftUpperLeg = humanoid?.getNormalizedBoneNode("leftUpperLeg");
-    const rightUpperLeg = humanoid?.getNormalizedBoneNode("rightUpperLeg");
-
     const time = performance.now() / 1000;
     const procedural = proceduralRef.current;
-    procedural.elapsed += delta;
+    procedural.elapsed += safeDelta;
 
     if (rightUpperArm) rightUpperArm.rotation.set(0, 0, 0);
     if (rightLowerArm) rightLowerArm.rotation.set(0, 0, 0);
@@ -543,7 +521,6 @@ function VRMAvatar({
     if (head) head.rotation.set(0, 0, 0);
     if (leftUpperLeg) leftUpperLeg.rotation.set(0, 0, 0);
     if (rightUpperLeg) rightUpperLeg.rotation.set(0, 0, 0);
-
     switch (procedural.action) {
       case "thinking":
         if (head) head.rotation.y = Math.sin(time * 0.8) * 0.02;
@@ -655,88 +632,225 @@ function VRMAvatar({
       procedural.elapsed = 0;
     }
 
-    vrm.update(delta);
+    updateEntranceMotion();
+
+    vrm.update(safeDelta);
     lockAnchorTransform();
   });
 
   if (!vrm || !fit) return null;
 
+  if (vrmUrl === NARUTO_VRM_URL) {
+    return (
+      <NarutoVRM
+        currentAction={currentAction}
+        entranceGroupRef={entranceGroupRef}
+        fit={fit}
+        groupRef={groupRef}
+        modelConfig={modelConfig}
+        scale={scale}
+        vrm={vrm}
+      />
+    );
+  }
+
   return (
-    <group ref={groupRef} scale={scale}>
-      <primitive object={vrm.scene} position={[-fit.center.x, -fit.minY + (modelConfig?.yOffset ?? 0), -fit.center.z]} />
+    <group ref={entranceGroupRef}>
+      <group ref={groupRef} scale={scale}>
+        <primitive object={vrm.scene} position={[-fit.center.x, -fit.minY + (modelConfig?.yOffset ?? 0), -fit.center.z]} />
+      </group>
     </group>
   );
 }
 
 export function BuddyVRM({
   actionNonce = 0,
-  className = "",
   currentAction = DEFAULT_ACTION,
+  entranceSequenceId = 0,
   onActionFinished,
   onReady,
+  onStateChange,
   proceduralFallback = true,
   vrmUrl = DEFAULT_VRM_URL,
 }) {
   const { error, loading, vrm } = useVRMModel(vrmUrl);
   const [loadedActions, setLoadedActions] = useState({});
-  const [actionsReady, setActionsReady] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(FORCED_CAMERA_ZOOM);
-  const controlsRef = useRef(null);
+  const [loadingActions, setLoadingActions] = useState({});
+  const [resolvedActions, setResolvedActions] = useState({});
+  const [warmupState, setWarmupState] = useState({ completed: 0, total: CORE_ACTIONS.length, visibleReady: false });
   const loadedActionNamesRef = useRef(new Set());
+  const loadingActionNamesRef = useRef(new Set());
   const modelConfig = MODEL_CONFIGS[vrmUrl] ?? MODEL_CONFIGS[DEFAULT_VRM_URL];
+  const sharedActionAliases = useMemo(() => {
+    const aliasMap = new Map();
 
-  useEffect(() => {
-    setZoomLevel(FORCED_CAMERA_ZOOM);
-  }, [vrmUrl]);
+    Object.entries(ACTION_LIBRARY).forEach(([name, config]) => {
+      const key = `${config.format}::${config.url}`;
+      const aliases = aliasMap.get(key) ?? [];
+      aliases.push(name);
+      aliasMap.set(key, aliases);
+    });
+
+    return aliasMap;
+  }, []);
+
+  const registerLoadedClip = (actionConfig, actionName, clip) => {
+    const aliasKey = `${actionConfig.format}::${actionConfig.url}`;
+    const aliases = sharedActionAliases.get(aliasKey) ?? [actionName];
+
+    setLoadingActions((current) => {
+      const next = { ...current };
+      aliases.forEach((name) => {
+        delete next[name];
+        loadingActionNamesRef.current.delete(name);
+      });
+      return next;
+    });
+
+    if (!clip) {
+      setResolvedActions((current) => {
+        const next = { ...current };
+        aliases.forEach((name) => {
+          next[name] = true;
+        });
+        return next;
+      });
+      return;
+    }
+
+    setLoadedActions((current) => {
+      const next = { ...current };
+
+      aliases.forEach((candidateName) => {
+        next[candidateName] = clip;
+        loadedActionNamesRef.current.add(candidateName);
+      });
+
+      return next;
+    });
+
+    setResolvedActions((current) => {
+      const next = { ...current };
+      aliases.forEach((candidateName) => {
+        next[candidateName] = true;
+      });
+      return next;
+    });
+  };
+
+  const markActionLoading = (actionConfig, actionName) => {
+    const aliasKey = `${actionConfig.format}::${actionConfig.url}`;
+    const aliases = sharedActionAliases.get(aliasKey) ?? [actionName];
+
+    setLoadingActions((current) => {
+      const next = { ...current };
+      aliases.forEach((name) => {
+        next[name] = true;
+        loadingActionNamesRef.current.add(name);
+      });
+      return next;
+    });
+  };
+
+  const preloadAction = async (actionName, sourceVrm = vrm) => {
+    const actionConfig = ACTION_LIBRARY[actionName];
+
+    if (!actionConfig || !actionConfig.useClip || loadedActionNamesRef.current.has(actionName) || loadingActionNamesRef.current.has(actionName)) {
+      return Boolean(loadedActionNamesRef.current.has(actionName));
+    }
+
+    markActionLoading(actionConfig, actionName);
+    const clip = await loadCachedMotionClip({
+      actionName,
+      format: actionConfig.format,
+      url: actionConfig.url,
+      vrm: sourceVrm,
+      vrmUrl,
+    });
+    registerLoadedClip(actionConfig, actionName, clip);
+    return Boolean(clip);
+  };
 
   useEffect(() => {
     if (!vrm) {
       setLoadedActions({});
-      setActionsReady(false);
+      setLoadingActions({});
+      setResolvedActions({});
+      setWarmupState({ completed: 0, total: CORE_ACTIONS.length, visibleReady: false });
       loadedActionNamesRef.current = new Set();
+      loadingActionNamesRef.current = new Set();
       return;
     }
 
     if (modelConfig.preferProceduralOnly) {
       setLoadedActions({});
-      setActionsReady(true);
+      setLoadingActions({});
+      setResolvedActions({});
+      setWarmupState({ completed: CORE_ACTIONS.length, total: CORE_ACTIONS.length, visibleReady: true });
       loadedActionNamesRef.current = new Set();
+      loadingActionNamesRef.current = new Set();
       return;
     }
 
     let cancelled = false;
-    setActionsReady(false);
+    const cleanupTasks = [];
+    setResolvedActions({});
+    setLoadingActions({});
+    setWarmupState({ completed: 0, total: CORE_ACTIONS.length, visibleReady: false });
     loadedActionNamesRef.current = new Set();
+    loadingActionNamesRef.current = new Set();
 
-    const idleConfig = ACTION_LIBRARY[DEFAULT_ACTION];
-
-    loadCachedVRMAClip({
-      actionName: DEFAULT_ACTION,
-      url: idleConfig.url,
-      vrm,
-      vrmUrl,
-    }).then((idleClip) => {
-      if (cancelled) return;
-
-      const nextActions = {};
-
-      if (idleClip) {
-        Object.entries(ACTION_LIBRARY).forEach(([actionName, actionConfig]) => {
-          if (actionConfig.url === idleConfig.url) {
-            nextActions[actionName] = idleClip;
-            loadedActionNamesRef.current.add(actionName);
+    CORE_ACTIONS.forEach((actionName, index) => {
+      cleanupTasks.push(
+        scheduleBackgroundTask(async () => {
+          if (index > 0) {
+            await new Promise((resolve) => window.setTimeout(resolve, index * 160));
           }
-        });
-      }
 
-      setLoadedActions(nextActions);
-      setActionsReady(true);
+          await preloadAction(actionName, vrm);
+          if (cancelled) return;
+
+          setWarmupState((current) => {
+            const completed = Math.min(current.total, current.completed + 1);
+            return {
+              completed,
+              total: current.total,
+              visibleReady: completed > 0,
+            };
+          });
+        }),
+      );
     });
 
     return () => {
       cancelled = true;
+      cleanupTasks.forEach((cleanup) => cleanup?.());
     };
-  }, [modelConfig.preferProceduralOnly, vrm, vrmUrl]);
+  }, [modelConfig.preferProceduralOnly, sharedActionAliases, vrm, vrmUrl]);
+
+  useEffect(() => {
+    if (!vrm || modelConfig.preferProceduralOnly || loading) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    const cleanupTasks = [];
+
+    COMMON_ACTIONS.filter((actionName) => !CORE_ACTIONS.includes(actionName)).forEach((actionName, index) => {
+      cleanupTasks.push(
+        scheduleBackgroundTask(async () => {
+          await new Promise((resolve) => window.setTimeout(resolve, 260 + index * 120));
+          if (cancelled) return;
+          await preloadAction(actionName, vrm);
+        }),
+      );
+    });
+
+    return () => {
+      cancelled = true;
+      cleanupTasks.forEach((cleanup) => cleanup?.());
+    };
+  }, [loading, modelConfig.preferProceduralOnly, vrm, vrmUrl]);
 
   useEffect(() => {
     if (!vrm || modelConfig.preferProceduralOnly) {
@@ -750,117 +864,55 @@ export function BuddyVRM({
       return;
     }
 
-    let cancelled = false;
+    const loadAction = async () => {
+      if (!RARE_ACTIONS.has(nextAction) && warmupState.completed < warmupState.total) {
+        return;
+      }
 
-    loadCachedVRMAClip({
-      actionName: nextAction,
-      url: actionConfig.url,
-      vrm,
-      vrmUrl,
-    }).then((clip) => {
-      if (cancelled || !clip) return;
-
-      setLoadedActions((current) => {
-        const next = { ...current };
-
-        Object.entries(ACTION_LIBRARY).forEach(([actionName, config]) => {
-          if (config.url === actionConfig.url) {
-            next[actionName] = clip;
-            loadedActionNamesRef.current.add(actionName);
-          }
-        });
-
-        return next;
-      });
-    });
-
-    return () => {
-      cancelled = true;
+      await preloadAction(nextAction, vrm);
     };
-  }, [currentAction, modelConfig.preferProceduralOnly, vrm, vrmUrl]);
+
+    void loadAction();
+  }, [currentAction, modelConfig.preferProceduralOnly, vrm, vrmUrl, warmupState.completed, warmupState.total]);
 
   useEffect(() => {
-    if (!vrm || loading || !actionsReady) {
+    if (!vrm || loading) {
       return;
     }
 
     onReady?.();
-  }, [actionsReady, loading, onReady, vrm]);
+  }, [loading, onReady, vrm]);
+
+  useEffect(() => {
+    onStateChange?.({
+      error,
+      loading,
+      loadingActions,
+      progress: warmupState.total > 0 ? warmupState.completed / warmupState.total : 1,
+      visibleReady: warmupState.visibleReady || modelConfig.preferProceduralOnly,
+      warmingUp: !loading && !modelConfig.preferProceduralOnly && warmupState.completed < warmupState.total,
+    });
+  }, [error, loading, loadingActions, modelConfig.preferProceduralOnly, onStateChange, warmupState]);
+
+  if (!vrm) {
+    return null;
+  }
 
   return (
-    <div className={`relative h-[540px] overflow-hidden rounded-[1.75rem] border border-white/80 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 ${className}`}>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12),transparent_55%)]" />
-      <div className="absolute right-4 top-4 z-20 flex items-center gap-2 rounded-2xl border border-white/15 bg-slate-950/70 p-2 text-white shadow-lg backdrop-blur">
-        <button
-          className="grid h-9 w-9 place-items-center rounded-xl bg-white/10 text-lg font-black transition hover:bg-white/20"
-          onClick={() => setZoomLevel((value) => Math.min(MAX_CAMERA_ZOOM, value + 20))}
-          type="button"
-        >
-          +
-        </button>
-        <button
-          className="grid h-9 min-w-[58px] place-items-center rounded-xl bg-white/10 px-2 text-xs font-black transition hover:bg-white/20"
-          onClick={() => setZoomLevel(FORCED_CAMERA_ZOOM)}
-          type="button"
-        >
-          Reset
-        </button>
-        <button
-          className="grid h-9 w-9 place-items-center rounded-xl bg-white/10 text-lg font-black transition hover:bg-white/20"
-          onClick={() => setZoomLevel((value) => Math.max(MIN_CAMERA_ZOOM, value - 20))}
-          type="button"
-        >
-          -
-        </button>
-      </div>
-
-      {loading && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center px-6 text-center text-sm font-semibold text-white/80">
-          Đang tải VRM và VRMA...
-        </div>
-      )}
-
-      {error && !loading ? (
-        <div className="absolute inset-4 z-10 rounded-2xl border border-white/20 bg-slate-950/70 p-4 text-sm font-semibold text-white/80">
-          Không thể tải VRM từ đường dẫn hiện tại. Buddy Room đang chờ file model hợp lệ.
-        </div>
-      ) : null}
-
-      <Canvas orthographic camera={{ position: [0, 1.15, 10], zoom: FORCED_CAMERA_ZOOM }}>
-        <ambientLight intensity={modelConfig.ambientIntensity} />
-        <directionalLight intensity={modelConfig.keyLightIntensity} position={[2, 4, 3]} />
-        <directionalLight color="#60a5fa" intensity={modelConfig.rimLightIntensity} position={[-3, 2, 2]} />
-
-        <Suspense fallback={null}>
-          <CameraZoomController controlsRef={controlsRef} zoomLevel={zoomLevel} />
-          {vrm ? (
-            <VRMAvatar
-              actionNonce={actionNonce}
-              currentAction={currentAction}
-              loadedActions={loadedActions}
-              modelConfig={modelConfig}
-              onActionFinished={onActionFinished}
-              proceduralEnabled={proceduralFallback}
-              vrm={vrm}
-            />
-          ) : null}
-          <Environment preset="city" />
-        </Suspense>
-
-        <OrbitControls
-          ref={controlsRef}
-          enablePan={false}
-          enableZoom
-          maxPolarAngle={1.75}
-          maxZoom={MAX_CAMERA_ZOOM}
-          minPolarAngle={1.05}
-          minZoom={MIN_CAMERA_ZOOM}
-          target={[0, 1.05, 0]}
-          zoomToCursor
-          zoomSpeed={0.9}
-        />
-      </Canvas>
-    </div>
+    <Suspense fallback={null}>
+      <VRMAvatar
+        actionNonce={actionNonce}
+        currentAction={currentAction}
+        entranceSequenceId={entranceSequenceId}
+        loadedActions={loadedActions}
+        modelConfig={modelConfig}
+        onActionFinished={onActionFinished}
+        proceduralEnabled={proceduralFallback}
+        resolvedActions={resolvedActions}
+        vrm={vrm}
+        vrmUrl={vrmUrl}
+      />
+    </Suspense>
   );
 }
 

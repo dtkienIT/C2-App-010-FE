@@ -42,7 +42,7 @@ export function BuddyParticles({ accent, mood }: { accent: BuddyAccent; mood: Bu
         <div className="absolute right-[22%] top-[28%] flex gap-2">
           {[0, 1, 2].map((dot) => (
             <span
-              className="h-2.5 w-2.5 animate-bounce rounded-full bg-white shadow-[0_0_18px_currentColor]"
+              className="h-2.5 w-2.5 animate-bounce rounded-full bg-current/80 shadow-[0_0_18px_currentColor]"
               key={dot}
               style={{ animationDelay: `${dot * 220}ms`, animationDuration: "1.6s", color }}
             />
@@ -58,7 +58,7 @@ export function BuddyParticles({ accent, mood }: { accent: BuddyAccent; mood: Bu
 
         return (
           <span
-            className="absolute animate-pulse rounded-full bg-white shadow-[0_0_18px_currentColor]"
+            className="absolute animate-pulse rounded-full bg-current/80 shadow-[0_0_18px_currentColor]"
             key={index}
             style={{
               animationDelay: delay,

@@ -86,7 +86,9 @@ export type CompanionModelAction =
   | "shoot"
   | "spin"
   | "pose"
-  | "squat";
+  | "catwalk"
+  | "squat"
+  | "rasengan";
 
 export type CompanionModel = {
   id: string;
@@ -102,6 +104,16 @@ export type CompanionModel = {
   vrmUrl: string;
   actions: CompanionModelAction[];
   accent: "cyan" | "violet" | "amber" | "indigo" | "rose" | "emerald";
+};
+
+export type RoomBackground = {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  accent: "cyan" | "violet" | "amber" | "indigo" | "rose" | "emerald";
+  unlocked: boolean;
+  price?: number;
 };
 
 export type Activity = {
@@ -153,6 +165,7 @@ export const rewards: Reward[];
 export const companionModels: CompanionModel[];
 export const storeCompanionModels: CompanionModel[];
 export const achievementCompanionModels: CompanionModel[];
+export const roomBackgrounds: RoomBackground[];
 export const activities: Activity[];
 export const statsCards: StatCardData[];
 export const aiSuggestion: {
