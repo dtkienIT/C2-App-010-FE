@@ -1,6 +1,7 @@
 import type { Session, User } from "@supabase/supabase-js";
 import { createContext, startTransition, useContext, useEffect, useState, type ReactNode } from "react";
-import { AUTH_TOKEN_KEY, apiClient } from "../services/apiClient";
+import { AUTH_TOKEN_KEY, AUTH_UNAUTHORIZED_EVENT } from "../services/apiClient";
+import { getMeWithApi, loginWithApi, registerWithApi } from "../services/authApi";
 import { isSupabaseConfigured, supabase } from "../services/supabaseClient";
 
 type Role = "student" | "teacher" | "admin" | "guest";
@@ -17,9 +18,13 @@ export type AuthUser = {
 type BackendTokenResponse = {
   access_token: string;
   user: {
-    id: number;
+    id: number | string;
     email: string;
     role: Exclude<Role, "guest">;
+    displayName?: string;
+    display_name?: string;
+    name?: string;
+    avatar?: string;
   };
 };
 
@@ -70,13 +75,13 @@ function buildAvatar(name: string) {
 }
 
 function toBackendAuthUser(user: BackendTokenResponse["user"]): AuthUser {
-  const displayName = buildDisplayName(user.email);
+  const displayName = user.displayName ?? user.display_name ?? user.name ?? buildDisplayName(user.email);
   return {
     id: user.id,
     email: user.email,
     role: user.role,
     name: displayName,
-    avatar: buildAvatar(displayName),
+    avatar: user.avatar ?? buildAvatar(displayName),
   };
 }
 
@@ -214,9 +219,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const response = await apiClient.get<BackendTokenResponse["user"]>("/auth/me");
+        const data = await getMeWithApi();
         if (!isMounted) return;
-        const nextUser = toBackendAuthUser(response.data);
+        const nextUser = toBackendAuthUser(data);
         setStoredUser(nextUser);
         startTransition(() => {
           setUser(nextUser);
@@ -261,6 +266,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [mode]);
 
+  useEffect(() => {
+    function handleUnauthorized() {
+      if (mode === "guest") return;
+      clearStoredAuth();
+      setUser(null);
+      setMode("signed_out");
+      setIsLoading(false);
+    }
+
+    window.addEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
+    return () => window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
+  }, [mode]);
+
   async function login(email: string, password: string) {
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -274,9 +292,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const response = await apiClient.post<BackendTokenResponse>("/auth/login", { email, password });
-    const nextUser = toBackendAuthUser(response.data.user);
-    localStorage.setItem(AUTH_TOKEN_KEY, response.data.access_token);
+    const data = await loginWithApi(email, password);
+    const nextUser = toBackendAuthUser(data.user);
+    localStorage.setItem(AUTH_TOKEN_KEY, data.access_token);
     setStoredUser(nextUser);
     setUser(nextUser);
     setMode("authenticated");
@@ -307,9 +325,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error("Tai khoan da duoc tao. Hay xac nhan email truoc khi dang nhap neu Supabase yeu cau.");
     }
 
-    const response = await apiClient.post<BackendTokenResponse>("/auth/register", { email, password });
-    const nextUser = toBackendAuthUser(response.data.user);
-    localStorage.setItem(AUTH_TOKEN_KEY, response.data.access_token);
+    const data = await registerWithApi(email, password);
+    const nextUser = toBackendAuthUser(data.user);
+    localStorage.setItem(AUTH_TOKEN_KEY, data.access_token);
     setStoredUser(nextUser);
     setUser(nextUser);
     setMode("authenticated");

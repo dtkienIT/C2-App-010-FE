@@ -2,7 +2,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useCompanionModelStore } from "../components/buddy/useCompanionModelStore";
 import { Card } from "../components/Card";
-import { storeCompanionModels, user } from "../data/mockData";
 
 const accentTone = {
   amber: "from-amber-100 to-orange-50 text-amber-700",
@@ -14,7 +13,7 @@ const accentTone = {
 } as const;
 
 export function Buddy3DPage() {
-  const { equipModel, equippedModelId, isBuddy3DEnabled, roomBackgrounds, selectBackground, selectedBackgroundId } = useCompanionModelStore();
+  const { companionModels, equipModel, equippedModelId, isBuddy3DEnabled, roomBackgrounds, selectBackground, selectedBackgroundId } = useCompanionModelStore();
   const navigate = useNavigate();
 
   function handleEquipModel(modelId: string) {
@@ -28,7 +27,6 @@ export function Buddy3DPage() {
         <div>
           <h1 className="text-3xl font-black text-foreground">Buddy 3D</h1>
         </div>
-        <div className="rounded-2xl border border-border bg-card px-5 py-3 font-black text-primary">{user.coins} coin</div>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -52,7 +50,7 @@ export function Buddy3DPage() {
         </div>
 
         <div className="grid gap-5 md:grid-cols-2">
-          {storeCompanionModels.map((model) => {
+          {companionModels.map((model) => {
             const isEquipped = equippedModelId === model.id;
             const isActive = isEquipped && isBuddy3DEnabled;
 

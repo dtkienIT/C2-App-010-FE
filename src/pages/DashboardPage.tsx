@@ -1,12 +1,15 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Bot, Brain, CheckCircle2, ClipboardList, Sparkles, Star, Trophy } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 import { BuddyAvatar } from "../components/BuddyAvatar";
 import { useActiveBuddy } from "../components/buddy/useActiveBuddy";
 import { Card, GradientCard } from "../components/Card";
 import { ProgressBar } from "../components/ProgressBar";
 import { QuestCard } from "../components/QuestCard";
-import { quests, user } from "../data/mockData";
+import { getDashboard } from "../services/dashboardApi";
+import type { DashboardData, Mission } from "../services/types";
 
 const loopSteps = [
   {
@@ -32,8 +35,43 @@ const loopSteps = [
 ];
 
 export function DashboardPage() {
+  const { mode } = useAuth();
   const { activeBuddy } = useActiveBuddy();
-  const dailyQuests = quests.filter((quest) => quest.type === "daily");
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState(mode !== "guest");
+
+  useEffect(() => {
+    if (mode === "guest") {
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    getDashboard()
+      .then((data) => {
+        if (!cancelled) setDashboard(data);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mode]);
+
+  const dashboardUser = dashboard?.user ?? {
+    level: 1,
+    xp: 0,
+    nextLevelXp: 1000,
+    totalXp: 0,
+  };
+  const dailyQuests: Mission[] = dashboard?.dailyQuests ?? [];
+  const displayedBuddy = dashboard?.currentBuddy ?? activeBuddy;
+
+  if (isLoading) {
+    return <Card className="p-6 text-center font-black text-foreground">Đang tải dashboard...</Card>;
+  }
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1fr_390px]">
@@ -71,11 +109,11 @@ export function DashboardPage() {
             <div className="relative mx-auto">
               <div className="absolute inset-x-5 bottom-0 h-14 rounded-full bg-brand-300/25 blur-2xl" />
               <BuddyAvatar
-                emoji={activeBuddy.emoji}
-                fallbackImage={activeBuddy.fallbackImage}
-                gradient={activeBuddy.gradient}
+                emoji={displayedBuddy.emoji}
+                fallbackImage={displayedBuddy.fallbackImage}
+                gradient={displayedBuddy.gradient}
                 size="xl"
-                variant={activeBuddy.id}
+                variant={displayedBuddy.id as any}
               />
             </div>
           </div>
@@ -129,7 +167,7 @@ export function DashboardPage() {
           </div>
           <div className="mt-5 space-y-4">
             {dailyQuests.map((quest) => (
-              <QuestCard key={quest.id} {...quest} />
+              <QuestCard icon={ClipboardList} key={quest.id} {...quest} />
             ))}
           </div>
           <Link className="secondary-button primary-soft mt-5 w-full border-transparent text-brand-700 dark:text-violet-200" to="/missions">
@@ -147,40 +185,40 @@ export function DashboardPage() {
               </Link>
             </div>
             <BuddyAvatar
-              emoji={activeBuddy.emoji}
-              fallbackImage={activeBuddy.fallbackImage}
-              gradient={activeBuddy.gradient}
-              size="sm"
-              variant={activeBuddy.id}
-            />
+                emoji={displayedBuddy.emoji}
+                fallbackImage={displayedBuddy.fallbackImage}
+                gradient={displayedBuddy.gradient}
+                size="sm"
+                variant={displayedBuddy.id as any}
+              />
           </div>
           <div className="mt-5 grid grid-cols-2 gap-3">
             <div className="rounded-2xl bg-muted p-4">
               <p className="text-sm font-bold text-muted-foreground">Tổng XP</p>
-              <p className="mt-1 text-3xl font-black text-foreground">{user.totalXp.toLocaleString("vi-VN")}</p>
+              <p className="mt-1 text-3xl font-black text-foreground">{(dashboardUser.totalXp ?? dashboardUser.xp ?? 0).toLocaleString("vi-VN")}</p>
             </div>
             <div className="rounded-2xl bg-muted p-4">
               <p className="text-sm font-bold text-muted-foreground">Cấp hiện tại</p>
-              <p className="mt-1 text-3xl font-black text-foreground">Lv. {user.level}</p>
+              <p className="mt-1 text-3xl font-black text-foreground">Lv. {dashboardUser.level}</p>
             </div>
           </div>
           <div className="mt-5">
             <div className="flex justify-between text-sm font-bold text-muted-foreground">
-              <span>{user.xp} XP</span>
-              <span>{user.nextLevelXp} XP</span>
+              <span>{dashboardUser.xp} XP</span>
+              <span>{dashboardUser.nextLevelXp} XP</span>
             </div>
-            <ProgressBar className="mt-2" max={user.nextLevelXp} value={user.xp} />
+            <ProgressBar className="mt-2" max={dashboardUser.nextLevelXp ?? 1000} value={dashboardUser.xp ?? 0} />
           </div>
         </Card>
 
         <GradientCard className="p-5">
           <div className="flex gap-4">
             <BuddyAvatar
-              emoji={activeBuddy.emoji}
-              fallbackImage={activeBuddy.fallbackImage}
-              gradient={activeBuddy.gradient}
+              emoji={displayedBuddy.emoji}
+              fallbackImage={displayedBuddy.fallbackImage}
+              gradient={displayedBuddy.gradient}
               size="sm"
-              variant={activeBuddy.id}
+              variant={displayedBuddy.id as any}
             />
             <div>
               <h3 className="font-black text-foreground">Bạn đang làm rất tốt!</h3>

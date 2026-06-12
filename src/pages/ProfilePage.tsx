@@ -1,9 +1,10 @@
 import { isAxiosError } from "axios";
 import { Crown, Flame, LogOut, Mail, ShieldCheck, Sparkles, Ticket, UserPlus, UserRound, Wallet } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { progress, user as mockUser } from "../data/mockData";
+import { apiClient } from "../services/apiClient";
+import type { ApiUser } from "../services/types";
 
 const roleLabels = {
   admin: "Quản trị viên",
@@ -36,6 +37,7 @@ export function ProfilePage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [stats, setStats] = useState<ApiUser | null>(null);
 
   if (!user) {
     return null;
@@ -62,6 +64,26 @@ export function ProfilePage() {
 
   const isGuest = mode === "guest";
   const capabilities = roleCapabilities[user.role];
+
+  useEffect(() => {
+    if (isGuest) return;
+    let cancelled = false;
+    apiClient.get<ApiUser>("/users/me/stats").then((response) => {
+      if (!cancelled) setStats(response.data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isGuest]);
+
+  const profileStats = stats ?? {
+    level: 0,
+    xp: 0,
+    streak: 0,
+    studyTime: "0h 0m",
+    quizCompleted: 0,
+    accuracy: 0,
+  };
 
   return (
     <div className="space-y-6">
@@ -91,17 +113,17 @@ export function ProfilePage() {
             <div className="soft-tile rounded-2xl p-4">
               <Sparkles className="text-brand-600" size={20} />
               <p className="mt-3 text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">Level</p>
-              <p className="mt-1 text-2xl font-black text-foreground">{mockUser.level}</p>
+              <p className="mt-1 text-2xl font-black text-foreground">{profileStats.level}</p>
             </div>
             <div className="soft-tile rounded-2xl p-4">
               <Wallet className="text-amber-500" size={20} />
               <p className="mt-3 text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">XP</p>
-              <p className="mt-1 text-2xl font-black text-foreground">{mockUser.xp}</p>
+              <p className="mt-1 text-2xl font-black text-foreground">{profileStats.xp}</p>
             </div>
             <div className="soft-tile rounded-2xl p-4">
               <Flame className="text-orange-500" size={20} />
               <p className="mt-3 text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">Streak</p>
-              <p className="mt-1 text-2xl font-black text-foreground">{mockUser.streak}</p>
+              <p className="mt-1 text-2xl font-black text-foreground">{profileStats.streak}</p>
             </div>
           </div>
         </div>
@@ -154,9 +176,9 @@ export function ProfilePage() {
                 <h2 className="mt-1 text-2xl font-black">Tài khoản đã sẵn sàng</h2>
               </div>
               <div className="space-y-3 text-sm font-semibold text-muted-foreground">
-                <p>Thời gian học: {progress.studyTime}</p>
-                <p>Quiz hoàn thành: {progress.quizCompleted}</p>
-                <p>Độ chính xác: {progress.accuracy}%</p>
+                <p>Thời gian học: {profileStats.studyTime}</p>
+                <p>Quiz hoàn thành: {profileStats.quizCompleted}</p>
+                <p>Độ chính xác: {profileStats.accuracy}%</p>
               </div>
             </div>
           )}
