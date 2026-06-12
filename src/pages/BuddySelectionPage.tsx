@@ -16,24 +16,24 @@ export function BuddySelectionPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-gradient-to-br from-white via-cyan-50 to-emerald-50 p-4 shadow-soft md:p-6">
+    <div className="space-y-6 pt-6 lg:pt-10">
+      <div className="hero-surface relative overflow-hidden rounded-[2rem] p-4 md:p-6">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center">
           <div className="relative">
             <p className="soft-chip">AI Study Buddy</p>
-            <h1 className="mt-3 text-3xl font-black text-slate-950 md:text-4xl">Chọn Buddy Đồng Hành</h1>
-            <p className="mt-2 max-w-2xl text-base leading-7 text-slate-600 md:text-lg">Chọn buddy phù hợp với cách học của bạn.</p>
+            <h1 className="mt-3 text-3xl font-black text-foreground md:text-4xl">Chọn Buddy Đồng Hành</h1>
+            <p className="mt-2 max-w-2xl text-base leading-7 text-muted-foreground md:text-lg">Chọn buddy phù hợp với cách học của bạn.</p>
             <div className="mt-5 flex flex-wrap gap-2">
               {activeBuddy.tags.slice(0, 4).map((tag) => (
-                <span className="rounded-full border border-white/80 bg-white/80 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-slate-600" key={tag}>
+                <span className="rounded-full border border-border/80 bg-card/85 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-muted-foreground" key={tag}>
                   {tag}
                 </span>
               ))}
             </div>
             <div className="mt-5 flex flex-wrap items-center gap-3">
-              <div className="rounded-2xl bg-white/85 px-4 py-3 shadow-sm">
-                <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Đang đồng hành</p>
-                <p className="mt-1 text-xl font-black text-slate-950">{activeBuddy.name}</p>
+              <div className="rounded-2xl border border-border/80 bg-card/85 px-4 py-3 shadow-sm">
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Đang đồng hành</p>
+                <p className="mt-1 text-xl font-black text-foreground">{activeBuddy.name}</p>
               </div>
               <Link className="secondary-button" to="/buddy-room">
                 Vào Buddy Room
@@ -47,7 +47,7 @@ export function BuddySelectionPage() {
             </div>
           </div>
 
-          <div className="rounded-[1.75rem] border border-white/70 bg-white/55 p-3 shadow-sm backdrop-blur">
+          <div className="rounded-[1.75rem] border border-border/70 bg-card/55 p-3 shadow-sm backdrop-blur">
             <Buddy3DStage
               accent={activeBuddy.accent}
               fallbackEmoji={activeBuddy.emoji}

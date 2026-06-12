@@ -16,10 +16,10 @@ export function QuizPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <span className="soft-chip">Grammar mission</span>
-            <h1 className="mt-4 text-3xl font-black text-slate-950">{quiz.title}</h1>
-            <p className="mt-2 text-slate-600">Chủ đề: {quiz.topic}</p>
+            <h1 className="mt-4 text-3xl font-black text-foreground">{quiz.title}</h1>
+            <p className="mt-2 text-muted-foreground">Chủ đề: {quiz.topic}</p>
           </div>
-          <div className="rounded-2xl bg-violet-50 px-4 py-3 text-right text-sm font-bold text-brand-700">
+          <div className="primary-soft rounded-2xl px-4 py-3 text-right text-sm font-bold text-brand-700 dark:text-violet-200">
             <p>+{quiz.rewardXp} XP</p>
             <p>+{quiz.rewardCoin} coin</p>
           </div>
@@ -27,17 +27,17 @@ export function QuizPage() {
 
         <div className="mt-8 space-y-5">
           {quiz.questions.map((question, index) => (
-            <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm" key={question.id}>
+            <div className="soft-panel rounded-[1.5rem] p-5" key={question.id}>
               <div className="flex items-start justify-between gap-4">
-                <h2 className="text-lg font-black text-slate-950">
+                <h2 className="text-lg font-black text-foreground">
                   Câu {index + 1}. {question.question}
                 </h2>
-                <Clock3 className="text-slate-400" size={18} />
+                <Clock3 className="text-muted-foreground" size={18} />
               </div>
               <div className="mt-4 grid gap-3">
                 {question.options.map((option) => (
                   <button
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:border-brand-300 hover:bg-violet-50 hover:text-slate-950"
+                    className="rounded-2xl border border-border bg-card/88 px-4 py-3 text-left text-sm font-semibold text-foreground transition hover:border-primary/40 hover:bg-muted hover:text-foreground"
                     key={option}
                     type="button"
                   >
@@ -63,14 +63,14 @@ export function QuizPage() {
       <aside className="space-y-6">
         <Card className="p-6 text-center">
           <BuddyAvatar className="mx-auto" emoji={activeBuddy.emoji} fallbackImage={activeBuddy.fallbackImage} gradient={activeBuddy.gradient} size="lg" variant={activeBuddy.id} />
-          <h2 className="mt-4 text-xl font-black text-slate-950">{activeBuddy.name}</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">{activeBuddy.personality}</p>
+          <h2 className="mt-4 text-xl font-black text-foreground">{activeBuddy.name}</h2>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">{activeBuddy.personality}</p>
         </Card>
 
         <Card className="p-6">
           <div className="flex items-center gap-3">
             <Sparkles className="text-brand-700" size={22} />
-            <h3 className="text-lg font-black text-slate-950">Mục tiêu lần này</h3>
+            <h3 className="text-lg font-black text-foreground">Mục tiêu lần này</h3>
           </div>
           <div className="mt-4 space-y-3">
             {[
@@ -78,7 +78,7 @@ export function QuizPage() {
               "Giữ độ chính xác trên 70%.",
               "Nhận XP và coin để nuôi buddy.",
             ].map((item) => (
-              <div className="flex gap-3 rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-700" key={item}>
+              <div className="soft-tile flex gap-3 rounded-2xl p-3 text-sm font-semibold text-foreground" key={item}>
                 <CheckCircle2 className="mt-0.5 shrink-0 text-emerald-500" size={16} />
                 {item}
               </div>

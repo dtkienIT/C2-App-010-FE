@@ -23,11 +23,13 @@ type BackendTokenResponse = {
   };
 };
 
+type AuthProviderMode = "supabase" | "api";
+
 type AuthContextValue = {
   user: AuthUser | null;
   mode: SessionMode;
   isLoading: boolean;
-  authProvider: "supabase" | "backend";
+  authProvider: AuthProviderMode;
   isSupabaseReady: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
@@ -337,7 +339,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         mode,
         isLoading,
-        authProvider: isSupabaseConfigured ? "supabase" : "backend",
+        authProvider: isSupabaseConfigured ? "supabase" : "api",
         isSupabaseReady: isSupabaseConfigured,
         login,
         register,

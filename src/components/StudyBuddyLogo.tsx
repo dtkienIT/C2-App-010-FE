@@ -6,7 +6,7 @@ type StudyBuddyLogoProps = {
 export function StudyBuddyLogo({ compact = false, className = "" }: StudyBuddyLogoProps) {
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      <div className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-[1.2rem] bg-white shadow-[0_14px_35px_rgba(37,99,235,0.18)]">
+      <div className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-[1.2rem] bg-card shadow-[0_14px_35px_rgba(37,99,235,0.18)]">
         <svg aria-hidden="true" className="h-12 w-12" viewBox="0 0 80 80">
           <defs>
             <linearGradient id="buddy-study-shell" x1="8" x2="72" y1="8" y2="72">
@@ -49,10 +49,10 @@ export function StudyBuddyLogo({ compact = false, className = "" }: StudyBuddyLo
       </div>
       {!compact ? (
         <div className="min-w-0">
-          <h1 className="text-[1.6rem] font-black leading-none text-slate-950">
+          <h1 className="text-[1.6rem] font-black leading-none text-foreground">
             Buddy <span className="text-blue-500">Study</span>
           </h1>
-          <p className="mt-1 text-sm font-semibold text-slate-500">Học vui hơn, tiến bộ rõ hơn</p>
+          <p className="mt-1 text-sm font-semibold text-muted-foreground">Học vui hơn, tiến bộ rõ hơn</p>
         </div>
       ) : null}
     </div>

@@ -40,7 +40,7 @@ export function DashboardPage() {
       <div className="space-y-6">
         <motion.section
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-[2rem] border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-blue-50 p-8 shadow-soft"
+          className="hero-surface relative overflow-hidden rounded-[2rem] p-8"
           initial={{ opacity: 0, y: 16 }}
           transition={{ duration: 0.45, ease: "easeOut" }}
         >
@@ -52,10 +52,10 @@ export function DashboardPage() {
                 <Brain size={16} />
                 AI Study Buddy
               </span>
-              <h1 className="mt-5 max-w-3xl text-4xl font-black leading-[1.05] tracking-tight text-slate-950 md:text-6xl">
+              <h1 className="mt-5 max-w-3xl text-4xl font-black leading-[1.05] tracking-tight text-foreground md:text-6xl">
                 Học cùng <span className="text-brand-700">AI companion</span>
               </h1>
-              <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-600">
+              <p className="mt-4 max-w-2xl text-lg leading-8 text-muted-foreground">
                 Học tập hiệu quả hơn nhờ buddy AI đáng yêu nhưng vẫn chuyên nghiệp. Làm quiz, nhận thưởng, nuôi buddy và nhận gợi ý học tiếp theo tiến độ của bạn.
               </p>
               <div className="mt-7 flex flex-wrap gap-3">
@@ -82,20 +82,20 @@ export function DashboardPage() {
         </motion.section>
 
         <Card className="p-6">
-          <h2 className="text-center text-2xl font-black text-slate-950">Vòng lặp học tập & nuôi buddy</h2>
+          <h2 className="text-center text-2xl font-black text-foreground">Vòng lặp học tập & nuôi buddy</h2>
           <div className="mt-6 grid gap-4 lg:grid-cols-4">
             {loopSteps.map((step, index) => {
               const Icon = step.icon;
               return (
-                <div className="relative rounded-[1.5rem] border border-slate-200 bg-white p-5 text-center shadow-sm" key={step.title}>
+                <div className="relative rounded-[1.5rem] border border-border bg-card p-5 text-center shadow-sm" key={step.title}>
                   {index < loopSteps.length - 1 ? (
                     <ArrowRight className="absolute -right-5 top-1/2 z-10 hidden -translate-y-1/2 text-brand-500 lg:block" size={24} />
                   ) : null}
-                  <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-violet-50 text-brand-700">
+                  <div className="primary-soft mx-auto grid h-16 w-16 place-items-center rounded-2xl text-brand-700 dark:text-violet-200">
                     <Icon size={30} />
                   </div>
                   <h3 className="mt-4 font-black text-brand-700">{step.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">{step.text}</p>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{step.text}</p>
                 </div>
               );
             })}
@@ -112,7 +112,7 @@ export function DashboardPage() {
             <GradientCard className="p-6" key={String(title)}>
               <Icon className="text-brand-700" size={34} />
               <h3 className="mt-4 text-xl font-black text-brand-800">{String(title)}</h3>
-              <p className="mt-3 text-sm leading-6 text-slate-600">{String(text)}</p>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">{String(text)}</p>
             </GradientCard>
           ))}
         </section>
@@ -122,8 +122,8 @@ export function DashboardPage() {
         <Card className="p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-black text-slate-950">Nhiệm vụ mỗi ngày</h2>
-              <p className="mt-1 text-sm text-slate-500">Cập nhật sau: 10:15:30</p>
+              <h2 className="text-2xl font-black text-foreground">Nhiệm vụ mỗi ngày</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Cập nhật sau: 10:15:30</p>
             </div>
             <CheckCircle2 className="text-emerald-500" size={30} />
           </div>
@@ -132,7 +132,7 @@ export function DashboardPage() {
               <QuestCard key={quest.id} {...quest} />
             ))}
           </div>
-          <Link className="secondary-button mt-5 w-full bg-violet-50 text-brand-700" to="/missions">
+          <Link className="secondary-button primary-soft mt-5 w-full border-transparent text-brand-700 dark:text-violet-200" to="/missions">
             Xem tất cả nhiệm vụ
             <ArrowRight size={18} />
           </Link>
@@ -141,7 +141,7 @@ export function DashboardPage() {
         <Card className="p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-black text-slate-950">Tiến độ của bạn</h2>
+              <h2 className="text-2xl font-black text-foreground">Tiến độ của bạn</h2>
               <Link className="mt-1 inline-flex items-center gap-1 text-sm font-bold text-brand-700" to="/progress">
                 Xem chi tiết <ArrowRight size={15} />
               </Link>
@@ -155,17 +155,17 @@ export function DashboardPage() {
             />
           </div>
           <div className="mt-5 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-violet-50 p-4">
-              <p className="text-sm font-bold text-slate-500">Tổng XP</p>
-              <p className="mt-1 text-3xl font-black text-slate-950">{user.totalXp.toLocaleString("vi-VN")}</p>
+            <div className="rounded-2xl bg-muted p-4">
+              <p className="text-sm font-bold text-muted-foreground">Tổng XP</p>
+              <p className="mt-1 text-3xl font-black text-foreground">{user.totalXp.toLocaleString("vi-VN")}</p>
             </div>
-            <div className="rounded-2xl bg-blue-50 p-4">
-              <p className="text-sm font-bold text-slate-500">Cấp hiện tại</p>
-              <p className="mt-1 text-3xl font-black text-slate-950">Lv. {user.level}</p>
+            <div className="rounded-2xl bg-muted p-4">
+              <p className="text-sm font-bold text-muted-foreground">Cấp hiện tại</p>
+              <p className="mt-1 text-3xl font-black text-foreground">Lv. {user.level}</p>
             </div>
           </div>
           <div className="mt-5">
-            <div className="flex justify-between text-sm font-bold text-slate-500">
+            <div className="flex justify-between text-sm font-bold text-muted-foreground">
               <span>{user.xp} XP</span>
               <span>{user.nextLevelXp} XP</span>
             </div>
@@ -183,8 +183,8 @@ export function DashboardPage() {
               variant={activeBuddy.id}
             />
             <div>
-              <h3 className="font-black text-slate-950">Bạn đang làm rất tốt!</h3>
-              <p className="mt-1 text-sm leading-6 text-slate-600">Cố gắng thêm một chút nữa để đạt mục tiêu tuần này nhé.</p>
+              <h3 className="font-black text-foreground">Bạn đang làm rất tốt!</h3>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">Cố gắng thêm một chút nữa để đạt mục tiêu tuần này nhé.</p>
             </div>
           </div>
         </GradientCard>

@@ -30,12 +30,12 @@ type Buddy3DCardProps = {
 };
 
 const accentPill: Record<BuddyAccent, string> = {
-  amber: "bg-amber-100/80 text-amber-800 ring-amber-200",
-  cyan: "bg-cyan-100/80 text-cyan-800 ring-cyan-200",
-  emerald: "bg-emerald-100/80 text-emerald-800 ring-emerald-200",
-  indigo: "bg-indigo-100/80 text-indigo-800 ring-indigo-200",
-  rose: "bg-rose-100/80 text-rose-800 ring-rose-200",
-  violet: "bg-violet-100/80 text-violet-800 ring-violet-200",
+  amber: "bg-amber-100/80 text-amber-800 ring-amber-200 dark:bg-amber-400/12 dark:text-amber-100 dark:ring-amber-300/20",
+  cyan: "bg-cyan-100/80 text-cyan-800 ring-cyan-200 dark:bg-cyan-400/12 dark:text-cyan-100 dark:ring-cyan-300/20",
+  emerald: "bg-emerald-100/80 text-emerald-800 ring-emerald-200 dark:bg-emerald-400/12 dark:text-emerald-100 dark:ring-emerald-300/20",
+  indigo: "bg-indigo-100/80 text-indigo-800 ring-indigo-200 dark:bg-indigo-400/12 dark:text-indigo-100 dark:ring-indigo-300/20",
+  rose: "bg-rose-100/80 text-rose-800 ring-rose-200 dark:bg-rose-400/12 dark:text-rose-100 dark:ring-rose-300/20",
+  violet: "bg-violet-100/80 text-violet-800 ring-violet-200 dark:bg-violet-400/12 dark:text-violet-100 dark:ring-violet-300/20",
 };
 
 const accentButton: Record<BuddyAccent, string> = {
@@ -77,24 +77,27 @@ export function Buddy3DCard({ buddy, onSelect, selected = false }: Buddy3DCardPr
 
   return (
     <motion.article
-      className={`group relative flex min-h-[420px] flex-col overflow-hidden rounded-[2rem] border bg-gradient-to-br ${buddy.gradient} p-3 shadow-soft transition ${
-        selected ? "border-slate-300 ring-2 ring-white/90 shadow-[0_24px_60px_rgba(99,102,241,0.18)]" : "border-white/80 hover:border-white hover:shadow-xl"
+      className={`group relative flex min-h-[420px] flex-col overflow-visible rounded-[2rem] border bg-gradient-to-br ${buddy.gradient} p-3 shadow-soft transition dark:!border-white/10 dark:!bg-none dark:!bg-slate-950 ${
+        selected
+          ? "border-primary/45 ring-2 ring-primary/25 shadow-[0_24px_60px_rgba(99,102,241,0.18)] dark:border-white/10 dark:ring-white/10"
+          : "border-border/80 hover:border-border hover:shadow-xl dark:border-white/10"
       }`}
       onHoverEnd={() => setIsHovered(false)}
       onHoverStart={() => setIsHovered(true)}
       transition={{ duration: 0.22, ease: "easeOut" }}
-      whileHover={{ scale: 1.014, y: -4 }}
+      whileHover={{ scale: 1.008, y: 0 }}
     >
-      <div className="absolute inset-x-10 top-5 h-24 rounded-full blur-3xl" style={{ background: "rgba(255,255,255,0.55)" }} />
+      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-transparent dark:from-slate-950/96 dark:via-slate-900/95 dark:to-slate-800/96" />
+      <div className="absolute inset-x-10 top-5 h-24 rounded-full blur-3xl" style={{ background: "rgba(148,163,184,0.12)" }} />
 
       {selected && (
-        <div className="absolute right-4 top-4 z-20 flex items-center gap-1 rounded-full bg-slate-950 px-3 py-1.5 text-xs font-black text-white shadow-sm">
+        <div className="absolute right-4 top-4 z-20 flex items-center gap-1 rounded-full bg-foreground px-3 py-1.5 text-xs font-black text-background shadow-sm dark:bg-slate-100 dark:text-slate-950">
           <CheckCircle2 size={15} />
           Active
         </div>
       )}
 
-      <div className="relative z-10 overflow-hidden rounded-[1.7rem] border border-white/70 bg-white/28 backdrop-blur">
+      <div className="relative z-10 overflow-hidden rounded-[1.7rem] border border-border/70 bg-card/35 pt-1 backdrop-blur dark:!border-white/10 dark:!bg-slate-950/72">
         <Buddy3DStage
           accent={buddy.accent}
           className="relative z-10"
@@ -109,7 +112,7 @@ export function Buddy3DCard({ buddy, onSelect, selected = false }: Buddy3DCardPr
         />
       </div>
 
-      <div className="relative z-10 mt-3 flex flex-1 flex-col rounded-[1.4rem] border border-white/75 bg-white/88 p-4 shadow-sm backdrop-blur">
+      <div className="relative z-10 mt-3 flex flex-1 flex-col rounded-[1.4rem] border border-border/80 bg-card/92 p-4 text-card-foreground shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/84">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap gap-1.5">
@@ -119,33 +122,33 @@ export function Buddy3DCard({ buddy, onSelect, selected = false }: Buddy3DCardPr
                 </span>
               ))}
             </div>
-            <h2 className="mt-3 text-[30px] font-black leading-none text-slate-950">{buddy.name}</h2>
-            <p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-slate-500">{buddy.type}</p>
+            <h2 className="mt-3 text-[30px] font-black leading-none text-foreground">{buddy.name}</h2>
+            <p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">{buddy.type}</p>
           </div>
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-slate-950 text-white shadow-sm">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-foreground text-background shadow-sm">
             <Sparkles size={17} />
           </div>
         </div>
 
-        <p className="mt-3 line-clamp-2 text-sm font-semibold leading-6 text-slate-600">{shortLine(buddy.personality ?? buddy.description)}</p>
+        <p className="mt-3 line-clamp-2 text-sm font-semibold leading-6 text-muted-foreground">{shortLine(buddy.personality ?? buddy.description)}</p>
 
         <div className="mt-4 grid grid-cols-3 gap-2">
           {compareStats.map(({ icon: Icon, label }) => (
-            <div className="rounded-2xl bg-slate-50/90 px-3 py-2 text-center" key={label}>
-              <Icon className="mx-auto text-slate-500" size={14} />
-              <p className="mt-1 text-[11px] font-black uppercase tracking-[0.08em] text-slate-500">{label}</p>
+            <div className="rounded-2xl bg-muted/85 px-3 py-2 text-center dark:bg-slate-900/76" key={label}>
+              <Icon className="mx-auto text-muted-foreground" size={14} />
+              <p className="mt-1 text-[11px] font-black uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
             </div>
           ))}
         </div>
 
-        <div className="mt-4 rounded-2xl bg-slate-50/90 p-3">
-          <div className="flex items-center justify-between text-xs font-black text-slate-600">
+        <div className="mt-4 rounded-2xl bg-muted/85 p-3 dark:bg-slate-900/76">
+          <div className="flex items-center justify-between text-xs font-black text-muted-foreground">
             <span>Độ tương thích</span>
             <span>
               {xp}/{nextLevelXp} XP
             </span>
           </div>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-background/80">
             <div className={`h-full rounded-full bg-gradient-to-r ${accentButton[buddy.accent].split(" hover:")[0]}`} style={{ width: `${progressPercent}%` }} />
           </div>
         </div>

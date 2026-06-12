@@ -1,4 +1,4 @@
-import { BadgeCheck, Bot, CheckCircle2, Sparkles } from "lucide-react";
+﻿import { BadgeCheck, Bot, CheckCircle2, Image as ImageIcon, Sparkles } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCompanionModelStore } from "../components/buddy/useCompanionModelStore";
 import { Card } from "../components/Card";
@@ -14,7 +14,7 @@ const accentTone = {
 } as const;
 
 export function Buddy3DPage() {
-  const { equipModel, equippedModelId, isBuddy3DEnabled } = useCompanionModelStore();
+  const { equipModel, equippedModelId, isBuddy3DEnabled, roomBackgrounds, selectBackground, selectedBackgroundId } = useCompanionModelStore();
   const navigate = useNavigate();
 
   function handleEquipModel(modelId: string) {
@@ -26,9 +26,9 @@ export function Buddy3DPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-slate-950">Buddy 3D</h1>
+          <h1 className="text-3xl font-black text-foreground">Buddy 3D</h1>
         </div>
-        <div className="rounded-2xl bg-white px-5 py-3 font-black text-brand-700">{user.coins} coin</div>
+        <div className="rounded-2xl border border-border bg-card px-5 py-3 font-black text-primary">{user.coins} coin</div>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -47,7 +47,7 @@ export function Buddy3DPage() {
         <div className="flex items-center gap-3">
           <Bot className="text-brand-700" size={22} />
           <div>
-            <h2 className="text-2xl font-black text-slate-950">Cửa hàng Buddy 3D</h2>
+            <h2 className="text-2xl font-black text-foreground">Cửa hàng Buddy 3D</h2>
           </div>
         </div>
 
@@ -62,12 +62,12 @@ export function Buddy3DPage() {
                   <div className={`grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br ${accentTone[model.accent]}`}>
                     <Sparkles size={24} />
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${isActive ? "bg-emerald-500/12 text-emerald-600 dark:text-emerald-300" : "bg-muted text-muted-foreground"}`}>
                     {isActive ? "Đang dùng" : isEquipped ? "Đã chọn" : "Sẵn sàng"}
                   </span>
                 </div>
 
-                <h3 className="mt-5 text-xl font-black text-slate-950">{model.name}</h3>
+                <h3 className="mt-5 text-xl font-black text-foreground">{model.name}</h3>
 
                 <button className={`${isEquipped ? "secondary-button" : "primary-button"} mt-6 w-full`} onClick={() => handleEquipModel(model.id)} type="button">
                   {isActive ? (
@@ -84,6 +84,50 @@ export function Buddy3DPage() {
                     <>
                       <BadgeCheck size={18} />
                       Chọn Buddy này
+                    </>
+                  )}
+                </button>
+              </Card>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex items-center gap-3">
+          <ImageIcon className="text-brand-700" size={22} />
+          <div>
+            <h2 className="text-2xl font-black text-foreground">Background Buddy Room</h2>
+          </div>
+        </div>
+
+        <div className="grid gap-5 md:grid-cols-2">
+          {roomBackgrounds.map((background) => {
+            const isSelected = selectedBackgroundId === background.id;
+
+            return (
+              <Card className="p-4" key={background.id}>
+                <div className="overflow-hidden rounded-[1.5rem] border border-border bg-muted">
+                  <img alt={background.name} className="h-44 w-full object-cover" src={background.imageUrl} />
+                </div>
+
+                <div className="mt-4 flex items-start justify-between gap-4">
+                  <h3 className="text-xl font-black text-foreground">{background.name}</h3>
+                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${isSelected ? "bg-emerald-500/12 text-emerald-600 dark:text-emerald-300" : "bg-muted text-muted-foreground"}`}>
+                    {isSelected ? "Đang dùng" : "Sẵn sàng"}
+                  </span>
+                </div>
+
+                <button className={`${isSelected ? "secondary-button" : "primary-button"} mt-5 w-full`} onClick={() => selectBackground(background.id)} type="button">
+                  {isSelected ? (
+                    <>
+                      <CheckCircle2 size={18} />
+                      Background đang dùng
+                    </>
+                  ) : (
+                    <>
+                      <BadgeCheck size={18} />
+                      Chọn background này
                     </>
                   )}
                 </button>

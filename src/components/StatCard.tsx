@@ -9,10 +9,10 @@ type StatCardProps = {
 };
 
 const toneClass = {
-  violet: "bg-violet-50 text-brand-700",
-  blue: "bg-blue-50 text-blue-600",
-  orange: "bg-orange-50 text-orange-600",
-  green: "bg-emerald-50 text-emerald-600",
+  violet: "primary-soft text-brand-700 dark:text-violet-200",
+  blue: "soft-tile text-blue-600 dark:text-sky-200",
+  orange: "warning-soft text-orange-600 dark:text-orange-200",
+  green: "success-soft text-emerald-600 dark:text-emerald-200",
 };
 
 export function StatCard({ label, value, icon: Icon, tone = "violet" }: StatCardProps) {
@@ -22,8 +22,8 @@ export function StatCard({ label, value, icon: Icon, tone = "violet" }: StatCard
         <Icon size={24} />
       </div>
       <div>
-        <p className="text-sm font-medium text-slate-500">{label}</p>
-        <strong className="mt-1 block text-2xl font-bold text-slate-950">{value}</strong>
+        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+        <strong className="mt-1 block text-2xl font-bold text-foreground">{value}</strong>
       </div>
     </Card>
   );
