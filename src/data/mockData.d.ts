@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 
 export type Buddy = {
-  id: "lumi" | "miu" | "owly" | "nova" | "ivy" | "tree";
+  id: "lumi" | "miu" | "owly" | "nova" | "ivy" | "tree" | "chasam";
   name: string;
   role: string;
   type: string;
@@ -66,29 +66,22 @@ export type Reward = {
   icon: LucideIcon;
   price?: number;
   unlocked: boolean;
+  previewImage?: string;
+  description?: string;
 };
 
-export type CompanionModelAction =
-  | "idle"
-  | "relax"
-  | "thinking"
-  | "lookAround"
-  | "clapping"
-  | "goodbye"
-  | "jump"
-  | "angry"
-  | "blush"
-  | "sad"
-  | "sleepy"
-  | "surprised"
-  | "greeting"
-  | "peace"
-  | "shoot"
-  | "spin"
-  | "pose"
-  | "catwalk"
-  | "squat"
-  | "rasengan";
+export type RoomBackground = {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  thumbnailUrl?: string;
+  accent: "cyan" | "violet" | "amber" | "indigo" | "rose" | "emerald";
+  unlocked: boolean;
+  price?: number;
+};
+
+export type CompanionModelAction = "idle" | "thinking" | "happy" | "sad" | "speak" | "wave" | "focus" | "celebrate";
 
 export type CompanionModel = {
   id: string;
@@ -104,16 +97,6 @@ export type CompanionModel = {
   vrmUrl: string;
   actions: CompanionModelAction[];
   accent: "cyan" | "violet" | "amber" | "indigo" | "rose" | "emerald";
-};
-
-export type RoomBackground = {
-  id: string;
-  name: string;
-  description: string;
-  imageUrl: string;
-  accent: "cyan" | "violet" | "amber" | "indigo" | "rose" | "emerald";
-  unlocked: boolean;
-  price?: number;
 };
 
 export type Activity = {
@@ -162,10 +145,10 @@ export const progress: {
   aiRoadmap: string[];
 };
 export const rewards: Reward[];
+export const roomBackgrounds: RoomBackground[];
 export const companionModels: CompanionModel[];
 export const storeCompanionModels: CompanionModel[];
 export const achievementCompanionModels: CompanionModel[];
-export const roomBackgrounds: RoomBackground[];
 export const activities: Activity[];
 export const statsCards: StatCardData[];
 export const aiSuggestion: {

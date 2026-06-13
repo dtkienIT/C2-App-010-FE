@@ -1,86 +1,79 @@
-import { Award, BadgeCheck, Flame, Medal, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
+import { BadgeCheck, CheckCircle2, Sparkles } from "lucide-react";
 import { Card } from "../components/Card";
-import { claimAchievement, getAchievements } from "../services/achievementsApi";
-import type { Achievement } from "../services/types";
-
-const iconMap = { Award, BadgeCheck, Flame, Medal, Sparkles };
+import { rewards, user } from "../data/mockData";
+import { useBuddyRoomPreferences } from "../components/buddy/useBuddyRoomPreferences";
 
 export function RewardsPage() {
-  const { mode } = useAuth();
-  const [achievements, setAchievements] = useState<Achievement[]>([]);
-
-  useEffect(() => {
-    if (mode === "guest") return;
-    let cancelled = false;
-    getAchievements().then((data) => {
-      if (!cancelled) setAchievements(data);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [mode]);
-
-  async function handleClaim(achievementId: string) {
-    const updated = await claimAchievement(achievementId);
-    setAchievements((current) => current.map((item) => (item.id === achievementId ? updated : item)));
-  }
-
-  if (mode === "guest") {
-    return <Card className="p-6 text-center font-bold text-muted-foreground">Đăng nhập để lưu thành tích và nhận thưởng thật.</Card>;
-  }
+  const { isRewardEquipped, setChasamSkinId } = useBuddyRoomPreferences();
 
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-foreground">Thành tích</h1>
-          <p className="mt-2 text-muted-foreground">Nơi lưu trữ badge, item và các phần thưởng riêng của Buddy Study.</p>
+          <h1 className="text-3xl font-black text-slate-950">Thanh tich</h1>
+          <p className="mt-2 text-slate-600">Noi luu tru badge, item va cac phan thuong cua Buddy Study.</p>
         </div>
-      </div>
-
-      <div className="flex flex-wrap gap-3">
-        <Link className="secondary-button" to="/buddy-room">
-          Vào Buddy Room
-        </Link>
-        <Link className="secondary-button" to="/buddy-3d">
-          Mở Cửa hàng
-        </Link>
-        <Link className="secondary-button" to="/buddies">
-          Chọn Buddy thường
-        </Link>
+        <div className="rounded-2xl bg-white px-5 py-3 font-black text-brand-700">{user.coins} coin</div>
       </div>
 
       <section className="space-y-4">
         <div className="flex items-center gap-3">
           <BadgeCheck className="text-brand-700" size={22} />
           <div>
-            <h2 className="text-2xl font-black text-foreground">Badge và phần thưởng</h2>
-            <p className="text-sm font-semibold text-muted-foreground">Kho phần thưởng hiện có của Buddy Study.</p>
+            <h2 className="text-2xl font-black text-slate-950">Badge & Item</h2>
+            <p className="text-sm font-semibold text-slate-500">Kho phan thuong hien co cua Buddy Study.</p>
           </div>
         </div>
 
         <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {achievements.map((achievement) => {
-            const Icon = iconMap[(achievement.icon as keyof typeof iconMap) ?? "BadgeCheck"] ?? BadgeCheck;
-            const canClaim = achievement.unlocked && !achievement.isClaimed;
+          {rewards.map((reward) => {
+            const Icon = reward.icon;
+            const isEquipped = isRewardEquipped(reward.id);
+            const canEquip = reward.id === "chasam-maneki" && reward.unlocked;
 
             return (
-              <Card className={achievement.unlocked ? "" : "opacity-90"} key={achievement.id}>
+              <Card className={reward.unlocked ? "" : "opacity-90"} key={reward.id}>
                 <div className="flex items-start justify-between gap-4">
-                  <div className="primary-soft grid h-14 w-14 place-items-center rounded-2xl text-brand-700 dark:text-violet-200">
-                    <Icon size={28} />
-                  </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${achievement.unlocked ? "success-soft text-emerald-700 dark:text-emerald-200" : "bg-muted text-muted-foreground"}`}>
-                    {achievement.unlocked ? (achievement.isClaimed ? "Đã nhận" : "Đã mở khóa") : "Chưa mở khóa"}
+                  {reward.previewImage ? (
+                    <img alt={reward.name} className="h-14 w-14 rounded-2xl border border-white/80 bg-violet-50 object-cover object-top" src={reward.previewImage} />
+                  ) : (
+                    <div className="grid h-14 w-14 place-items-center rounded-2xl bg-violet-50 text-brand-700">
+                      <Icon size={28} />
+                    </div>
+                  )}
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-bold ${
+                      reward.unlocked ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"
+                    }`}
+                  >
+                    {reward.unlocked ? "Da mo khoa" : "Chua mo khoa"}
                   </span>
                 </div>
-                <h2 className="mt-5 text-xl font-black text-foreground">{achievement.name ?? achievement.title}</h2>
-                <p className="mt-2 text-sm font-semibold text-muted-foreground">{achievement.description}</p>
-                <button className={canClaim ? "primary-button mt-6 w-full" : "secondary-button mt-6 w-full"} disabled={!canClaim} onClick={() => void handleClaim(achievement.id)} type="button">
-                  {achievement.unlocked ? (achievement.isClaimed ? "Đang sở hữu" : `Nhận +${achievement.rewardXp ?? 0} XP`) : "Chưa đạt điều kiện"}
+                <h2 className="mt-5 text-xl font-black text-slate-950">{reward.name}</h2>
+                <p className="mt-1 text-sm font-semibold capitalize text-slate-500">{reward.type}</p>
+                <p className="mt-3 min-h-[72px] text-sm font-semibold leading-6 text-slate-600">
+                  {reward.description ?? "Phan thuong se duoc mo rong them theo progression cua buddy room."}
+                </p>
+                {isEquipped && (
+                  <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-pink-50 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-pink-700">
+                    <CheckCircle2 size={14} /> Dang trang bi
+                  </div>
+                )}
+                <button
+                  className={reward.unlocked ? "secondary-button mt-6 w-full justify-center" : "primary-button mt-6 w-full justify-center"}
+                  onClick={() => {
+                    if (!canEquip) return;
+                    setChasamSkinId(isEquipped ? "default" : "maneki");
+                  }}
+                  type="button"
+                >
+                  {reward.unlocked
+                    ? canEquip
+                      ? isEquipped
+                        ? <><Sparkles size={18} /> Dang trang bi</>
+                        : <><Sparkles size={18} /> Trang bi skin</>
+                      : "Dang so huu"
+                    : `Mua ${reward.price ?? 100} coin`}
                 </button>
               </Card>
             );
@@ -90,4 +83,3 @@ export function RewardsPage() {
     </div>
   );
 }
-
