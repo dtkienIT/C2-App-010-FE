@@ -26,7 +26,8 @@ import { BuddyAvatar } from "../components/BuddyAvatar";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { useActiveBuddy } from "../components/buddy/useActiveBuddy";
 import { StudyBuddyLogo } from "../components/StudyBuddyLogo";
-import { user as learningStats } from "../data/mockData";
+import { apiClient } from "../services/apiClient";
+import type { ApiUser } from "../services/types";
 
 const navItems = [
   { to: "/dashboard", label: "Tổng quan", icon: Home },
@@ -51,12 +52,17 @@ function MetricCard({
   label,
   value,
   wide = false,
+  current,
+  max,
 }: {
   icon: ReactNode;
   label: string;
   value: string;
   wide?: boolean;
+  current?: number;
+  max?: number;
 }) {
+  const progressValue = current && max ? (current / max) * 100 : 0;
   return (
     <div
       className={`hidden h-16 items-center gap-3 rounded-xl border border-border/80 bg-card/88 px-4 text-card-foreground shadow-sm backdrop-blur xl:flex ${
@@ -69,7 +75,7 @@ function MetricCard({
           <p className="text-xs font-black uppercase text-muted-foreground">{label}</p>
           {wide ? (
             <p className="text-xs font-bold text-muted-foreground">
-              {learningStats.xp} / {learningStats.nextLevelXp} XP
+              {current ?? 0} / {max ?? 1000} XP
             </p>
           ) : null}
         </div>
@@ -77,7 +83,7 @@ function MetricCard({
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
             <div
               className="h-full rounded-full bg-gradient-to-r from-accent to-primary"
-              style={{ width: `${(learningStats.xp / learningStats.nextLevelXp) * 100}%` }}
+              style={{ width: `${progressValue}%` }}
             />
           </div>
         ) : (
@@ -97,10 +103,25 @@ export function AppLayout() {
   const currentRole = user ? roleLabels[user.role] : "Đã đăng xuất";
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isGuestHeaderExpanded, setIsGuestHeaderExpanded] = useState(false);
+  const [stats, setStats] = useState<ApiUser | null>(null);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (mode === "guest") {
+      setStats(null);
+      return;
+    }
+    let cancelled = false;
+    apiClient.get<ApiUser>("/users/me/stats").then((response) => {
+      if (!cancelled) setStats(response.data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [mode]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -118,6 +139,14 @@ export function AppLayout() {
     logout();
     navigate("/auth", { replace: true });
   }
+
+  const learningStats = {
+    level: stats?.level ?? 0,
+    xp: stats?.xp ?? 0,
+    nextLevelXp: stats?.nextLevelXp ?? 1000,
+    coins: stats?.coins ?? 0,
+    streak: stats?.streak ?? 0,
+  };
 
   function renderNavLink(item: (typeof navItems)[number], mobile = false) {
     const Icon = item.icon;
@@ -165,7 +194,7 @@ export function AppLayout() {
 
         <Link className="mt-5 block rounded-2xl border border-border bg-muted p-4 transition hover:border-primary/25 hover:bg-card" to="/profile">
           <div className="flex items-center gap-3">
-            <BuddyAvatar emoji={activeBuddy.emoji} fallbackImage={activeBuddy.fallbackImage} size="sm" variant={activeBuddy.id} />
+            <BuddyAvatar emoji={activeBuddy.emoji} fallbackImage={activeBuddy.fallbackImage} size="sm" variant={activeBuddy.id as any} />
             <div className="min-w-0">
               <p className="truncate text-base font-black text-foreground">{activeBuddy.name}</p>
               <p className="text-sm font-semibold text-muted-foreground">{isGuest ? "Guest Pass" : currentRole}</p>
@@ -209,7 +238,7 @@ export function AppLayout() {
 
         <div className="mt-6 rounded-xl border border-border bg-card p-4 shadow-sm">
           <div className="flex items-center gap-3">
-            <BuddyAvatar emoji={activeBuddy.emoji} fallbackImage={activeBuddy.fallbackImage} size="sm" variant={activeBuddy.id} />
+              <BuddyAvatar emoji={activeBuddy.emoji} fallbackImage={activeBuddy.fallbackImage} size="sm" variant={activeBuddy.id as any} />
             <div className="min-w-0">
               <p className="truncate font-black text-foreground">{mode === "guest" ? "Guest Pass đang bật" : "Tài khoản học tập"}</p>
               <p className="mt-0.5 line-clamp-2 text-sm leading-5 text-muted-foreground">
@@ -242,7 +271,7 @@ export function AppLayout() {
             </div>
 
             <div className="hidden flex-1 items-center gap-3 lg:flex">
-              <MetricCard icon={<Sparkles size={24} />} label={`Level ${learningStats.level}`} value={`${learningStats.xp} XP`} wide />
+              <MetricCard current={learningStats.xp} icon={<Sparkles size={24} />} label={`Level ${learningStats.level}`} max={learningStats.nextLevelXp} value={`${learningStats.xp} XP`} wide />
               <MetricCard icon={<Wallet className="text-amber-500" size={23} />} label="Xu" value={learningStats.coins.toLocaleString("vi-VN")} />
               <MetricCard icon={<Flame className="text-orange-500" size={24} />} label="Streak" value={`${learningStats.streak} ngày`} />
             </div>

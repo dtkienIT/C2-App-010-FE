@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { companionModels, roomBackgrounds } from "../../data/mockData";
+import { AUTH_TOKEN_KEY } from "../../services/apiClient";
+import {
+  equipBuddy3DModel,
+  getBuddy3DModels,
+  getBuddy3DSettings,
+  getRoomBackgrounds,
+  selectRoomBackground as selectRoomBackgroundApi,
+} from "../../services/buddy3dApi";
+import type { CompanionModel, RoomBackground } from "../../services/types";
 
 const MODEL_STORAGE_KEY = "study-buddy-equipped-room-model";
 const ENABLED_STORAGE_KEY = "study-buddy-3d-enabled";
@@ -21,6 +30,27 @@ export function useCompanionModelStore() {
     if (typeof window === "undefined") return roomBackgrounds[0]?.id ?? "";
     return window.localStorage.getItem(BACKGROUND_STORAGE_KEY) ?? roomBackgrounds[0]?.id ?? "";
   });
+  const [apiModels, setApiModels] = useState<CompanionModel[]>([]);
+  const [apiBackgrounds, setApiBackgrounds] = useState<RoomBackground[]>([]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.localStorage.getItem(AUTH_TOKEN_KEY)) return;
+    let cancelled = false;
+    Promise.all([getBuddy3DModels(), getRoomBackgrounds(), getBuddy3DSettings()])
+      .then(([models, backgrounds, settings]) => {
+        if (cancelled) return;
+        setApiModels(models);
+        setApiBackgrounds(backgrounds);
+        setEquippedModelId((settings.equipped_model_id as CompanionModelId | null) ?? null);
+        setIsBuddy3DEnabled(Boolean(settings.buddy_3d_enabled));
+        setSelectedBackgroundId(settings.room_background_id ?? backgrounds[0]?.id ?? "");
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -46,8 +76,8 @@ export function useCompanionModelStore() {
   }, [selectedBackgroundId]);
 
   const equippedModel = useMemo(
-    () => companionModels.find((model) => model.id === equippedModelId) ?? null,
-    [equippedModelId],
+    () => (apiModels.length ? apiModels : companionModels).find((model) => model.id === equippedModelId) ?? null,
+    [apiModels, equippedModelId],
   );
 
   const activeEquippedModel = useMemo(() => {
@@ -59,13 +89,16 @@ export function useCompanionModelStore() {
   }, [equippedModel, isBuddy3DEnabled]);
 
   const selectedBackground = useMemo(
-    () => roomBackgrounds.find((background) => background.id === selectedBackgroundId) ?? roomBackgrounds[0] ?? null,
-    [selectedBackgroundId],
+    () => (apiBackgrounds.length ? apiBackgrounds : roomBackgrounds).find((background) => background.id === selectedBackgroundId) ?? roomBackgrounds[0] ?? null,
+    [apiBackgrounds, selectedBackgroundId],
   );
 
   const equipModel = useCallback((id: CompanionModelId) => {
     setEquippedModelId(id);
     setIsBuddy3DEnabled(true);
+    if (typeof window !== "undefined" && window.localStorage.getItem(AUTH_TOKEN_KEY)) {
+      void equipBuddy3DModel(id).catch(() => undefined);
+    }
   }, []);
 
   const disableBuddy3D = useCallback(() => {
@@ -85,19 +118,22 @@ export function useCompanionModelStore() {
 
   const selectBackground = useCallback((id: string) => {
     setSelectedBackgroundId(id);
+    if (typeof window !== "undefined" && window.localStorage.getItem(AUTH_TOKEN_KEY)) {
+      void selectRoomBackgroundApi(id).catch(() => undefined);
+    }
   }, []);
 
   return {
     activeEquippedModel,
     clearEquippedModel,
-    companionModels,
+    companionModels: apiModels.length ? apiModels : companionModels,
     disableBuddy3D,
     enableBuddy3D,
     equippedModel,
     equippedModelId,
     equipModel,
     isBuddy3DEnabled,
-    roomBackgrounds,
+    roomBackgrounds: apiBackgrounds.length ? apiBackgrounds : roomBackgrounds,
     selectBackground,
     selectedBackground,
     selectedBackgroundId,

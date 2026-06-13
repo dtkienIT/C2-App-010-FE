@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { ClipboardList } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useAuth } from "../auth/AuthContext";
 import { QuestCard } from "../components/QuestCard";
-import { quests } from "../data/mockData";
+import { claimMission, completeMission, getMissions } from "../services/missionsApi";
+import type { Mission } from "../services/types";
 
 const tabs = [
   { id: "daily", label: "Hằng ngày" },
@@ -9,8 +12,39 @@ const tabs = [
 ];
 
 export function MissionsPage() {
+  const { mode } = useAuth();
   const [activeTab, setActiveTab] = useState("daily");
-  const filteredQuests = quests.filter((quest) => quest.type === activeTab);
+  const [missions, setMissions] = useState<Mission[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (mode === "guest") {
+      setMissions([]);
+      return;
+    }
+    let cancelled = false;
+    setIsLoading(true);
+    getMissions(activeTab)
+      .then((data) => {
+        if (!cancelled) setMissions(data);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, mode]);
+
+  async function handleComplete(missionId: string) {
+    const updated = await completeMission(missionId);
+    setMissions((current) => current.map((mission) => (mission.id === missionId ? updated : mission)));
+  }
+
+  async function handleClaim(missionId: string) {
+    const updated = await claimMission(missionId);
+    setMissions((current) => current.map((mission) => (mission.id === missionId ? updated : mission)));
+  }
 
   return (
     <div className="space-y-6">
@@ -34,8 +68,24 @@ export function MissionsPage() {
       </div>
 
       <section className="grid gap-4 xl:grid-cols-2">
-        {filteredQuests.map((quest) => (
-          <QuestCard key={quest.id} {...quest} />
+        {isLoading ? <p className="font-bold text-muted-foreground">Đang tải nhiệm vụ...</p> : null}
+        {!isLoading && missions.length === 0 ? <p className="font-bold text-muted-foreground">Guest Pass đang xem bản demo. Đăng nhập để lưu nhiệm vụ thật.</p> : null}
+        {missions.map((quest) => (
+          <div className="space-y-3" key={quest.id}>
+            <QuestCard icon={ClipboardList} {...quest} />
+            <div className="flex flex-wrap gap-2">
+              {!quest.completed ? (
+                <button className="secondary-button" onClick={() => void handleComplete(quest.id)} type="button">
+                  Đánh dấu hoàn thành
+                </button>
+              ) : null}
+              {quest.completed && !quest.isClaimed ? (
+                <button className="primary-button" onClick={() => void handleClaim(quest.id)} type="button">
+                  Nhận thưởng
+                </button>
+              ) : null}
+            </div>
+          </div>
         ))}
       </section>
     </div>

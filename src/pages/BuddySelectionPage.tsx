@@ -56,13 +56,13 @@ export function BuddySelectionPage() {
               mood={activeBuddy.mood}
               selected
               stageVariant="room"
-              variant={activeBuddy.id}
+              variant={activeBuddy.id as any}
             />
           </div>
         </div>
       </div>
 
-      <BuddySelectionGrid buddies={allBuddies} onSelect={handleSelectBuddy} selectedBuddyId={activeBuddyId} />
+      <BuddySelectionGrid buddies={allBuddies as any} onSelect={handleSelectBuddy} selectedBuddyId={activeBuddyId} />
     </div>
   );
 }

@@ -4,7 +4,6 @@ import { Card, GradientCard } from "../components/Card";
 import { BuddyRoom } from "../components/buddy/BuddyRoom";
 import { useActiveBuddy } from "../components/buddy/useActiveBuddy";
 import { useCompanionModelStore } from "../components/buddy/useCompanionModelStore";
-import { progress, rewards } from "../data/mockData";
 
 export function BuddyRoomPage() {
   const { activeBuddy } = useActiveBuddy();
@@ -68,12 +67,12 @@ export function BuddyRoomPage() {
             ) : null}
           </div>
           <div className="mt-5 grid grid-cols-3 gap-3">
-            {rewards.slice(0, 6).map((reward) => {
-              const Icon = reward.icon;
+            {["Starter Scholar", "7-Day Focus", "Grammar Explorer"].map((reward) => {
+              const Icon = Brain;
               return (
-                <div className="soft-tile rounded-2xl p-3 text-center" key={reward.id}>
+                <div className="soft-tile rounded-2xl p-3 text-center" key={reward}>
                   <Icon className="mx-auto text-brand-600" size={24} />
-                  <p className="mt-2 truncate text-xs font-semibold text-muted-foreground">{reward.name}</p>
+                  <p className="mt-2 truncate text-xs font-semibold text-muted-foreground">{reward}</p>
                 </div>
               );
             })}
@@ -86,7 +85,7 @@ export function BuddyRoomPage() {
             <h2 className="text-xl font-black text-foreground">Gợi ý học tập từ AI</h2>
           </div>
           <ul className="mt-5 grid gap-3 text-sm leading-6 text-muted-foreground md:grid-cols-3">
-            {progress.aiRoadmap.map((item) => (
+            {["Ôn Present Perfect trong 15 phút.", "Làm 1 quiz Grammar mức trung bình.", "Ôn lại các câu sai gần nhất bằng flashcard."].map((item) => (
               <li className="soft-panel flex gap-2 rounded-2xl p-4" key={item}>
                 <Brain className="mt-0.5 shrink-0 text-brand-600" size={16} />
                 {item}
