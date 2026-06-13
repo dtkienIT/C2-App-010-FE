@@ -1,5 +1,5 @@
 import { ArrowRight, Bot, Clock, Target, Trophy } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { Card } from "../components/Card";
@@ -10,13 +10,25 @@ import type { ProgressSummary } from "../services/types";
 export function ProgressPage() {
   const { mode } = useAuth();
   const [progress, setProgress] = useState<ProgressSummary | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (mode === "guest") return;
+    if (mode === "guest") {
+      setProgress(null);
+      setError("");
+      return;
+    }
+
     let cancelled = false;
-    getProgressSummary().then((data) => {
-      if (!cancelled) setProgress(data);
-    });
+    setProgress(null);
+    setError("");
+    getProgressSummary()
+      .then((data) => {
+        if (!cancelled) setProgress(data);
+      })
+      .catch(() => {
+        if (!cancelled) setError("Khong tai duoc thong ke. Hay kiem tra backend roi thu lai.");
+      });
     return () => {
       cancelled = true;
     };
@@ -27,19 +39,14 @@ export function ProgressPage() {
   }
 
   if (!progress) {
-    return <Card className="p-6 text-center font-black text-foreground">Dang tai thong ke...</Card>;
+    return <Card className="p-6 text-center font-black text-foreground">{error || "Dang tai thong ke..."}</Card>;
   }
 
   const xp7Days = progress.xp7Days ?? progress.weeklyActivity ?? [];
   const maxXp = Math.max(...xp7Days, 1);
   const strongestTopic = progress.strongTopics[0] ?? "Vocabulary";
   const weakestTopic = progress.weakTopics[0] ?? "Grammar";
-  const mentorSummary = useMemo(() => {
-    if (!progress.aiRoadmap.length) {
-      return "Chua co roadmap moi. Hoan thanh them mot session de AI mentor cap nhat huong hoc tiep theo.";
-    }
-    return progress.aiRoadmap[0];
-  }, [progress.aiRoadmap]);
+  const mentorSummary = progress.aiRoadmap[0] ?? "Chua co roadmap moi. Hoan thanh them mot session de AI mentor cap nhat huong hoc tiep theo.";
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
