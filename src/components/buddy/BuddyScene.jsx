@@ -1,41 +1,57 @@
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Environment, OrbitControls } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
-import { Vector3 } from "three";
+import { Canvas, useThree } from "@react-three/fiber";
 import { Buddy3DStage } from "./Buddy3DStage";
 import { BuddyVRM } from "./BuddyVRM";
-import { DEFAULT_VRM_URL, MODEL_CONFIGS } from "./config/buddyModels";
+import { DEFAULT_VRM_URL, FORCED_CAMERA_ZOOM, MAX_CAMERA_ZOOM as CONFIG_MAX_CAMERA_ZOOM, MODEL_CONFIGS } from "./config/buddyModels";
 import { useTheme } from "../../theme/ThemeProvider";
 
-const DEFAULT_CAMERA_ZOOM = 180;
-const MAX_CAMERA_ZOOM = 420;
+const DEFAULT_CAMERA_ZOOM = FORCED_CAMERA_ZOOM;
+const MAX_CAMERA_ZOOM = CONFIG_MAX_CAMERA_ZOOM;
 const MIN_CAMERA_ZOOM = DEFAULT_CAMERA_ZOOM;
 const DEFAULT_CAMERA_TARGET = [0, 1.05, 0];
-const DEFAULT_CAMERA_TARGET_VECTOR = new Vector3(...DEFAULT_CAMERA_TARGET);
+
+function SceneExposure({ exposure }) {
+  const gl = useThree((state) => state.gl);
+
+  useEffect(() => {
+    gl.toneMappingExposure = exposure;
+  }, [exposure, gl]);
+
+  return null;
+}
 
 function createSceneTheme(resolvedTheme) {
   if (resolvedTheme === "dark") {
     return {
-      backgroundFallback: "linear-gradient(135deg, rgba(26,34,56,0.98), rgba(15,23,42,0.99))",
+      ambientBoost: 0.64,
+      backgroundFallback: "linear-gradient(135deg, rgba(36,46,72,0.98), rgba(20,31,52,0.99))",
+      environmentIntensity: 0.24,
+      exposure: 0.9,
       floorOpacity: 0.28,
-      keyLightBoost: 0.92,
-      overlay: "radial-gradient(circle at top, rgba(148,163,184,0.12), transparent 55%)",
+      keyLightBoost: 0.66,
+      overlay: "radial-gradient(circle at 50% 12%, rgba(186,201,225,0.18), transparent 58%)",
       panelClassName: "border-[var(--room-panel-border)] bg-[var(--room-panel)] text-[var(--room-panel-foreground)] shadow-[0_18px_48px_rgba(2,6,23,0.46)]",
-      rimColor: "#93c5fd",
-      roomGradient: "from-[#1d2740] via-[#162033] to-[#111827]",
-      shadowOpacity: 0.26,
+      rimColor: "#bfdbfe",
+      rimLightBoost: 0.14,
+      roomGradient: "from-[#283552] via-[#1d2a45] to-[#151f35]",
+      shadowOpacity: 0.18,
     };
   }
 
   return {
-    backgroundFallback: "linear-gradient(135deg, rgba(15,23,42,0.96), rgba(30,41,59,0.96))",
+    ambientBoost: 0.72,
+    backgroundFallback: "linear-gradient(135deg, rgba(43,60,91,0.92), rgba(70,93,128,0.82))",
+    environmentIntensity: 0.28,
+    exposure: 0.94,
     floorOpacity: 0.22,
-    keyLightBoost: 1,
-    overlay: "radial-gradient(circle at top, rgba(255,255,255,0.12), transparent 55%)",
+    keyLightBoost: 0.72,
+    overlay: "radial-gradient(circle at 50% 10%, rgba(255,255,255,0.2), transparent 58%)",
     panelClassName: "border-[var(--room-panel-border)] bg-[var(--room-panel)] text-[var(--room-panel-foreground)] shadow-lg",
-    rimColor: "#60a5fa",
-    roomGradient: "from-slate-950 via-slate-900 to-blue-950",
-    shadowOpacity: 0.18,
+    rimColor: "#93c5fd",
+    rimLightBoost: 0.16,
+    roomGradient: "from-sky-950 via-slate-800 to-blue-900",
+    shadowOpacity: 0.14,
   };
 }
 
@@ -56,6 +72,7 @@ export function BuddyScene({
   currentAction,
   entranceSequenceId = 0,
   equippedModel,
+  modelId,
   onActionFinished,
   onReady,
   onStateChange,
@@ -229,11 +246,12 @@ export function BuddyScene({
         resize={{ debounce: { resize: 80, scroll: 40 } }}
         shadows
       >
-        <ambientLight intensity={modelConfig.ambientIntensity * sceneTheme.keyLightBoost} />
+        <SceneExposure exposure={sceneTheme.exposure} />
+        <ambientLight intensity={modelConfig.ambientIntensity * sceneTheme.ambientBoost} />
         <directionalLight
           castShadow
           intensity={modelConfig.keyLightIntensity * sceneTheme.keyLightBoost}
-          position={[2, 4, 3]}
+          position={[1.7, 3.4, 2.3]}
           shadow-bias={-0.00012}
           shadow-camera-left={-4}
           shadow-camera-right={4}
@@ -241,11 +259,11 @@ export function BuddyScene({
           shadow-camera-bottom={-4}
           shadow-camera-near={0.1}
           shadow-camera-far={12}
-          shadow-mapSize-width={1024}
-          shadow-mapSize-height={1024}
+          shadow-mapSize-width={512}
+          shadow-mapSize-height={512}
           shadow-opacity={sceneTheme.shadowOpacity}
         />
-        <directionalLight color={sceneTheme.rimColor} intensity={modelConfig.rimLightIntensity * 0.92} position={[-3, 2, 2]} />
+        <directionalLight color={sceneTheme.rimColor} intensity={modelConfig.rimLightIntensity * sceneTheme.rimLightBoost} position={[-2.4, 1.8, 1.5]} />
 
         <Suspense fallback={null}>
           <BuddyFloor opacity={sceneTheme.floorOpacity} />
@@ -253,12 +271,14 @@ export function BuddyScene({
             actionNonce={actionNonce}
             currentAction={currentAction}
             entranceSequenceId={entranceSequenceId}
+            key={modelId ?? vrmUrl}
+            modelId={modelId}
             onActionFinished={onActionFinished}
             onReady={onReady}
             onStateChange={setSceneState}
             vrmUrl={vrmUrl}
           />
-          <Environment preset="city" resolution={64} />
+          {sceneState.visibleReady ? <Environment intensity={sceneTheme.environmentIntensity} preset="city" resolution={32} /> : null}
         </Suspense>
 
         <OrbitControls

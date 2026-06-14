@@ -261,7 +261,7 @@ export function Live2DBuddyCanvas({
       <div className="h-full w-full" ref={hostRef} />
       {status === "loading" && (
         <div className="absolute inset-0 grid place-items-center rounded-[inherit] bg-white/35 text-sm font-bold text-slate-500 backdrop-blur-[1px]">
-          Dang tai Chasam Live2D...
+          Đang tải Chasam Live2D...
         </div>
       )}
       {status === "error" && (
@@ -270,7 +270,7 @@ export function Live2DBuddyCanvas({
             <img alt="Buddy fallback" className="h-full w-full object-contain p-6" src={fallbackImage} />
           ) : null}
           <div className="absolute inset-x-6 bottom-6 rounded-2xl bg-white/90 px-4 py-3 text-center text-sm font-bold leading-6 text-slate-600 shadow-sm">
-            Khong tai duoc Live2D. Dang dung fallback image de ban tiep tuc test room.
+            Không tải được Live2D. Đang dùng fallback image để bạn tiếp tục test room.
           </div>
         </div>
       )}

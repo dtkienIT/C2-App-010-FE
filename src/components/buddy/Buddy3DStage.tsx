@@ -83,17 +83,22 @@ export function Buddy3DStage({
   const portraitShell = isRoom ? "rounded-[2.4rem] p-5" : "rounded-[2rem] p-3";
   const emojiSize = isRoom ? "text-[9rem]" : "text-[4.5rem]";
   const uplift = selected ? -6 : isHovered ? -4 : 0;
+  const showStageEffects = isRoom;
 
   return (
     <div
       className={`${wrapperHeight} relative overflow-hidden rounded-[1.5rem] border border-border/80 bg-gradient-to-br ${stageGradient} ${className}`}
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.85),transparent_58%)] dark:bg-[radial-gradient(circle_at_top,rgba(148,163,184,0.1),transparent_60%)]" />
-      <div
-        className="absolute left-1/2 top-10 h-36 w-36 -translate-x-1/2 rounded-full blur-3xl"
-        style={{ background: theme.glow }}
-      />
-      <div className="pointer-events-none absolute inset-0">{renderSparkles(theme.sparkle, sparkleCount)}</div>
+      {showStageEffects ? (
+        <>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.85),transparent_58%)] dark:bg-[radial-gradient(circle_at_top,rgba(148,163,184,0.1),transparent_60%)]" />
+          <div
+            className="absolute left-1/2 top-10 h-36 w-36 -translate-x-1/2 rounded-full blur-3xl"
+            style={{ background: theme.glow }}
+          />
+          <div className="pointer-events-none absolute inset-0">{renderSparkles(theme.sparkle, sparkleCount)}</div>
+        </>
+      ) : null}
 
       <div className="absolute left-4 top-3 z-10 rounded-full border border-border/70 bg-card/90 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-muted-foreground shadow-sm">
         {moodLabel[mood]}
@@ -106,10 +111,10 @@ export function Buddy3DStage({
             scale: mood === "levelUp" ? [1, 1.03, 1] : mood === "happy" ? [1, 1.015, 1] : 1,
             y: mood === "happy" ? [uplift, uplift - 6, uplift] : mood === "levelUp" ? [uplift, uplift - 12, uplift] : uplift,
           }}
-          className={`relative bg-gradient-to-b ${theme.frame} ${portraitShell} shadow-[0_25px_70px_rgba(15,23,42,0.14)]`}
+          className={`relative bg-gradient-to-b ${theme.frame} ${portraitShell}`}
           transition={{ duration: mood === "levelUp" ? 1.4 : 3.6, ease: "easeInOut", repeat: Infinity, repeatDelay: 0.8 }}
         >
-          <div className={`absolute inset-3 rounded-[inherit] ${theme.panel} blur-2xl`} />
+          {showStageEffects ? <div className={`absolute inset-3 rounded-[inherit] ${theme.panel} blur-2xl`} /> : null}
           <div className="relative overflow-hidden rounded-[inherit] border border-border/80 bg-card/85 shadow-inner dark:bg-slate-950/78">
             {fallbackImage ? (
               <img alt={`${variant} buddy 2D`} className={`${imageSize} object-cover object-top`} src={fallbackImage} />
@@ -119,7 +124,7 @@ export function Buddy3DStage({
               </div>
             )}
           </div>
-          <div className="absolute -bottom-3 left-1/2 h-6 w-[72%] -translate-x-1/2 rounded-full bg-slate-300/35 blur-md" />
+          {showStageEffects ? <div className="absolute -bottom-3 left-1/2 h-6 w-[72%] -translate-x-1/2 rounded-full bg-slate-300/35 blur-md" /> : null}
         </motion.div>
       </div>
     </div>

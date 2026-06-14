@@ -10,8 +10,8 @@ export function RewardsPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-slate-950">Thanh tich</h1>
-          <p className="mt-2 text-slate-600">Noi luu tru badge, item va cac phan thuong cua Buddy Study.</p>
+          <h1 className="text-3xl font-black text-slate-950">Thành tích</h1>
+          <p className="mt-2 text-slate-600">Nơi lưu trữ badge, item và các phần thưởng của Buddy Study.</p>
         </div>
         <div className="rounded-2xl bg-white px-5 py-3 font-black text-brand-700">{user.coins} coin</div>
       </div>
@@ -21,7 +21,7 @@ export function RewardsPage() {
           <BadgeCheck className="text-brand-700" size={22} />
           <div>
             <h2 className="text-2xl font-black text-slate-950">Badge & Item</h2>
-            <p className="text-sm font-semibold text-slate-500">Kho phan thuong hien co cua Buddy Study.</p>
+            <p className="text-sm font-semibold text-slate-500">Kho phần thưởng hiện có của Buddy Study.</p>
           </div>
         </div>
 
@@ -46,17 +46,17 @@ export function RewardsPage() {
                       reward.unlocked ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"
                     }`}
                   >
-                    {reward.unlocked ? "Da mo khoa" : "Chua mo khoa"}
+                    {reward.unlocked ? "Đã mở khóa" : "Chưa mở khóa"}
                   </span>
                 </div>
                 <h2 className="mt-5 text-xl font-black text-slate-950">{reward.name}</h2>
                 <p className="mt-1 text-sm font-semibold capitalize text-slate-500">{reward.type}</p>
                 <p className="mt-3 min-h-[72px] text-sm font-semibold leading-6 text-slate-600">
-                  {reward.description ?? "Phan thuong se duoc mo rong them theo progression cua buddy room."}
+                  {reward.description ?? "Phần thưởng sẽ được mở rộng thêm theo progression của Buddy Room."}
                 </p>
                 {isEquipped && (
                   <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-pink-50 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-pink-700">
-                    <CheckCircle2 size={14} /> Dang trang bi
+                    <CheckCircle2 size={14} /> Đang trang bị
                   </div>
                 )}
                 <button
@@ -70,9 +70,9 @@ export function RewardsPage() {
                   {reward.unlocked
                     ? canEquip
                       ? isEquipped
-                        ? <><Sparkles size={18} /> Dang trang bi</>
-                        : <><Sparkles size={18} /> Trang bi skin</>
-                      : "Dang so huu"
+                        ? <><Sparkles size={18} /> Đang trang bị</>
+                        : <><Sparkles size={18} /> Trang bị skin</>
+                      : "Đang sở hữu"
                     : `Mua ${reward.price ?? 100} coin`}
                 </button>
               </Card>

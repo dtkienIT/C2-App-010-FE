@@ -1,7 +1,7 @@
 import React from "react";
 import { useFrame } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { AnimationMixer, LoopOnce, LoopRepeat } from "three";
+import { AnimationMixer, FrontSide, LoopOnce, LoopRepeat } from "three";
 import { NarutoVRM } from "./NarutoVRM";
 import { ACTION_LIBRARY, DEFAULT_ACTION } from "./config/buddyActions";
 import { DEFAULT_VRM_URL, MODEL_CONFIGS, NARUTO_VRM_URL } from "./config/buddyModels";
@@ -13,22 +13,17 @@ import { loadVRMAClip } from "./utils/loadVRMAClip";
 import { sanitizeVRMClip } from "./utils/sanitizeAnimationClip";
 
 const MOTION_CLIP_CACHE = new Map();
-const CORE_ACTIONS = [DEFAULT_ACTION, "catwalk", "talking"];
+const IMMEDIATE_ACTIONS = [DEFAULT_ACTION, "catwalk"];
+const DEFERRED_CORE_ACTIONS = ["talking"];
 const COMMON_ACTIONS = ["pose", "relax", "thinking", "lookAround", "greeting", "clapping", "goodbye"];
 const RARE_ACTIONS = new Set(["rasengan", "spin", "shoot", "squat", "jump", "angry", "surprised"]);
+const ACTION_CROSSFADE_SECONDS = 0.32;
+const ACTION_STOP_DELAY_MS = 420;
 
-function scheduleBackgroundTask(task) {
-  if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-    const idleId = window.requestIdleCallback(() => {
-      void task();
-    });
-
-    return () => window.cancelIdleCallback?.(idleId);
-  }
-
+function scheduleBackgroundTask(task, delay = 0) {
   const timeoutId = window.setTimeout(() => {
     void task();
-  }, 120);
+  }, delay);
 
   return () => window.clearTimeout(timeoutId);
 }
@@ -60,34 +55,29 @@ async function loadCachedMotionClip({ actionName, format, url, vrm, vrmUrl }) {
 
 function useVRMModel(vrmUrl) {
   const [state, setState] = useState(() => getCachedVRMModelState(vrmUrl));
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
 
     const cachedState = getCachedVRMModelState(vrmUrl);
     setState(cachedState);
 
     (async () => {
-      const urlsToTry = Array.from(new Set([vrmUrl, DEFAULT_VRM_URL]));
-      let lastError = null;
+      try {
+        const vrm = await loadVRMModel(vrmUrl);
 
-      for (const url of urlsToTry) {
-        try {
-          const vrm = await loadVRMModel(url);
+        if (cancelled || requestIdRef.current !== requestId) return;
 
-          if (cancelled) return;
+        setState({ error: null, loading: false, vrm });
+      } catch (error) {
+        if (cancelled || requestIdRef.current !== requestId) return;
 
-          setState({ error: null, loading: false, vrm });
-          return;
-        } catch (error) {
-          lastError = error;
-        }
+        console.error("Failed to load VRM model", { error, vrmUrl });
+        setState({ error, loading: false, vrm: null });
       }
-
-      if (cancelled) return;
-
-      console.error("Failed to load VRM model", lastError);
-      setState({ error: lastError, loading: false, vrm: null });
     })();
 
     return () => {
@@ -98,11 +88,276 @@ function useVRMModel(vrmUrl) {
   return state;
 }
 
+function stripVRMOutlineMaterial(material) {
+  if (!material) {
+    return material;
+  }
+
+  const applyBaseTweaks = (candidate) => {
+    if (!candidate) {
+      return candidate;
+    }
+
+    if ("outlineWidthFactor" in candidate) {
+      candidate.outlineWidthFactor = 0;
+    }
+
+    if ("outlineWidthMode" in candidate) {
+      candidate.outlineWidthMode = "none";
+    }
+
+    if ("outlineLightingMixFactor" in candidate) {
+      candidate.outlineLightingMixFactor = 0;
+    }
+
+    if ("shadingToonyFactor" in candidate) {
+      candidate.shadingToonyFactor = Math.min(candidate.shadingToonyFactor ?? 1, 0.42);
+    }
+
+    if ("shadingShiftFactor" in candidate) {
+      candidate.shadingShiftFactor = Math.max(candidate.shadingShiftFactor ?? 0, -0.02);
+    }
+
+    candidate.side = FrontSide;
+
+    if ("alphaToCoverage" in candidate && candidate.transparent) {
+      candidate.alphaToCoverage = true;
+    }
+
+    candidate.needsUpdate = true;
+    return candidate;
+  };
+
+  if (Array.isArray(material)) {
+    const baseMaterials = material.filter((candidate) => !candidate?.isOutline).map(applyBaseTweaks);
+    return baseMaterials.length > 0 ? baseMaterials : material.map(applyBaseTweaks);
+  }
+
+  if (material.isOutline) {
+    return null;
+  }
+
+  return applyBaseTweaks(material);
+}
+
+function softenGlobalVRMMaterial(material, context = {}) {
+  if (!material) {
+    return;
+  }
+
+  const materials = Array.isArray(material) ? material : [material];
+
+  let changedCount = 0;
+
+  materials.forEach((candidate) => {
+    if (!candidate) {
+      return;
+    }
+
+    let changed = false;
+
+    if ("rimLightingMixFactor" in candidate && typeof candidate.rimLightingMixFactor === "number") {
+      candidate.rimLightingMixFactor *= 0.5;
+      changed = true;
+    }
+
+    if ("parametricRimFresnelPowerFactor" in candidate && typeof candidate.parametricRimFresnelPowerFactor === "number") {
+      candidate.parametricRimFresnelPowerFactor *= 0.6;
+      changed = true;
+    }
+
+    if ("parametricRimLiftFactor" in candidate && typeof candidate.parametricRimLiftFactor === "number") {
+      candidate.parametricRimLiftFactor *= 0.55;
+      changed = true;
+    }
+
+    if ("outlineLightingMixFactor" in candidate && typeof candidate.outlineLightingMixFactor === "number") {
+      candidate.outlineLightingMixFactor *= 0.6;
+      changed = true;
+    }
+
+    if ("matcapFactor" in candidate) {
+      if (candidate.matcapFactor?.multiplyScalar) {
+        candidate.matcapFactor.multiplyScalar(0.5);
+        changed = true;
+      } else if (typeof candidate.matcapFactor === "number") {
+        candidate.matcapFactor *= 0.5;
+        changed = true;
+      }
+    }
+
+    if ("envMapIntensity" in candidate && typeof candidate.envMapIntensity === "number") {
+      candidate.envMapIntensity *= 0.5;
+      changed = true;
+    }
+
+    if ("specularIntensity" in candidate && typeof candidate.specularIntensity === "number") {
+      candidate.specularIntensity *= 0.45;
+      changed = true;
+    }
+
+    if ("emissiveIntensity" in candidate && typeof candidate.emissiveIntensity === "number") {
+      candidate.emissiveIntensity *= 0.55;
+      changed = true;
+    }
+
+    if ("roughness" in candidate && typeof candidate.roughness === "number") {
+      candidate.roughness = Math.min(1, candidate.roughness + 0.18);
+      changed = true;
+    }
+
+    if ("metalness" in candidate && typeof candidate.metalness === "number") {
+      candidate.metalness *= 0.65;
+      changed = true;
+    }
+
+    if (changed) {
+      changedCount += 1;
+      candidate.needsUpdate = true;
+    }
+  });
+
+  return changedCount;
+}
+
+function isHairLikeName(value) {
+  if (typeof value !== "string") {
+    return false;
+  }
+
+  return /(hair|bang|fringe|fronthair|backhair|sidehair|ahoge|tail|twintail)/i.test(value);
+}
+
+function softenHairMaterial(material, context = {}) {
+  if (!material) {
+    return;
+  }
+
+  const materials = Array.isArray(material) ? material : [material];
+
+  let changedCount = 0;
+
+  materials.forEach((candidate) => {
+    if (!candidate) {
+      return;
+    }
+
+    const looksLikeHair = isHairLikeName(candidate.name) || isHairLikeName(context.meshName);
+    if (!looksLikeHair) {
+      return;
+    }
+
+    if ("rimLightingMixFactor" in candidate) {
+      candidate.rimLightingMixFactor *= 0.35;
+    }
+
+    if ("parametricRimFresnelPowerFactor" in candidate) {
+      candidate.parametricRimFresnelPowerFactor *= 0.45;
+    }
+
+    if ("parametricRimLiftFactor" in candidate) {
+      candidate.parametricRimLiftFactor *= 0.45;
+    }
+
+    if ("matcapFactor" in candidate) {
+      if (candidate.matcapFactor?.multiplyScalar) {
+        candidate.matcapFactor.multiplyScalar(0.35);
+      } else if (typeof candidate.matcapFactor === "number") {
+        candidate.matcapFactor *= 0.35;
+      }
+    }
+
+    if ("shadeColorFactor" in candidate && candidate.shadeColorFactor?.multiplyScalar) {
+      candidate.shadeColorFactor.multiplyScalar(0.94);
+    }
+
+    if ("envMapIntensity" in candidate) {
+      candidate.envMapIntensity *= 0.35;
+    }
+
+    if ("specularIntensity" in candidate) {
+      candidate.specularIntensity *= 0.25;
+    }
+
+    if ("emissiveIntensity" in candidate) {
+      candidate.emissiveIntensity *= 0.3;
+    }
+
+    if ("metalness" in candidate) {
+      candidate.metalness *= 0.4;
+    }
+
+    if ("roughness" in candidate) {
+      candidate.roughness = Math.min(1, candidate.roughness + 0.24);
+    }
+
+    candidate.needsUpdate = true;
+    changedCount += 1;
+  });
+
+  if (changedCount > 0) {
+    console.debug("[BuddyVRM] softened hair materials", {
+      materialCount: changedCount,
+      meshName: context.meshName,
+      modelId: context.modelId,
+      vrmUrl: context.vrmUrl,
+    });
+  }
+
+  return changedCount;
+}
+
+function tuneVRMModelMaterials(vrm, context = {}) {
+  let meshCount = 0;
+  let materialCount = 0;
+  let hairMaterialCount = 0;
+  let outlineMaterialCount = 0;
+
+  vrm.scene.traverse((node) => {
+    if (!node.isMesh) {
+      return;
+    }
+
+    meshCount += 1;
+    const materialBefore = Array.isArray(node.material) ? node.material.length : node.material ? 1 : 0;
+    const sanitizedMaterial = stripVRMOutlineMaterial(node.material);
+    if (sanitizedMaterial) {
+      node.material = sanitizedMaterial;
+    }
+
+    const materialAfter = Array.isArray(node.material) ? node.material.length : node.material ? 1 : 0;
+    outlineMaterialCount += Math.max(0, materialBefore - materialAfter);
+    materialCount += softenGlobalVRMMaterial(node.material, {
+      meshName: node.name,
+      modelId: context.modelId,
+      vrmUrl: context.vrmUrl,
+    });
+    hairMaterialCount += softenHairMaterial(node.material, {
+      meshName: node.name,
+      modelId: context.modelId,
+      vrmUrl: context.vrmUrl,
+    });
+
+    node.castShadow = true;
+    node.receiveShadow = true;
+  });
+
+  console.debug("[BuddyVRM] material tuning summary", {
+    hairMaterialCount,
+    materialCount,
+    meshCount,
+    modelId: context.modelId,
+    outlineMaterialCount,
+    vrmUrl: context.vrmUrl,
+  });
+}
+
 function VRMAvatar({
   actionNonce,
   currentAction,
   entranceSequenceId = 0,
   loadedActions,
+  modelId,
   modelConfig,
   onActionFinished,
   proceduralEnabled,
@@ -201,6 +456,16 @@ function VRMAvatar({
 
     resetNodeTransform(entranceGroupRef.current);
     resetNodeTransform(groupRef.current);
+
+    if (sceneToRemove?.parent) {
+      sceneToRemove.parent.remove(sceneToRemove);
+    }
+
+    console.debug("[BuddyVRM] cleared previous model runtime", {
+      clearedModelId: modelId ?? vrmUrl,
+      hadMixer: Boolean(mixer),
+      sceneDetached: Boolean(sceneToRemove),
+    });
   };
 
   useEffect(() => {
@@ -229,13 +494,9 @@ function VRMAvatar({
       }, suspendSpringBonesOnLoadMs);
     }
 
-    vrm.scene.traverse((node) => {
-      if (!node.isMesh) {
-        return;
-      }
-
-      node.castShadow = true;
-      node.receiveShadow = true;
+    tuneVRMModelMaterials(vrm, {
+      modelId: modelId ?? vrmUrl,
+      vrmUrl,
     });
 
     let frameId = 0;
@@ -245,6 +506,9 @@ function VRMAvatar({
       vrm.springBoneManager?.reset?.();
       setFit(getStableModelFit(vrm, modelConfig));
     });
+
+    vrm.scene.userData.isBuddyModelRoot = true;
+    vrm.scene.userData.renderedModelId = modelId ?? vrmUrl;
 
     anchorRef.current = {
       group: groupRef.current
@@ -266,6 +530,12 @@ function VRMAvatar({
     const mixer = new AnimationMixer(vrm.scene);
     mixerRef.current = mixer;
 
+    console.debug("[BuddyVRM] mounted model", {
+      renderedModelId: modelId ?? vrmUrl,
+      sceneName: vrm.scene.name || "unnamed-scene",
+      vrmUrl,
+    });
+
     const handleFinished = () => {
       const actionName = currentActionRef.current;
       const actionConfig = ACTION_LIBRARY[actionName] ?? ACTION_LIBRARY[DEFAULT_ACTION];
@@ -282,7 +552,7 @@ function VRMAvatar({
       mixer.removeEventListener("finished", handleFinished);
       resetRuntimeState(vrm.scene);
     };
-  }, [modelConfig, vrm]);
+  }, [modelConfig, modelId, vrm, vrmUrl]);
 
   useEffect(() => {
     if (!vrm || !mixerRef.current) return;
@@ -304,7 +574,7 @@ function VRMAvatar({
           return;
         }
 
-        candidateAction.fadeOut(0.12);
+        candidateAction.fadeOut(ACTION_CROSSFADE_SECONDS);
         window.setTimeout(() => {
           if (activeActionRef.current === candidateAction) {
             return;
@@ -312,7 +582,7 @@ function VRMAvatar({
 
           candidateAction.stop();
           candidateAction.enabled = false;
-        }, 160);
+        }, ACTION_STOP_DELAY_MS);
       });
     };
 
@@ -328,7 +598,7 @@ function VRMAvatar({
     };
 
     if (proceduralOnly) {
-      activeActionRef.current?.fadeOut(0.18);
+      activeActionRef.current?.fadeOut(ACTION_CROSSFADE_SECONDS);
       stopNonActiveActions();
       activeActionRef.current = null;
       currentSourceRef.current = proceduralEnabled ? "procedural" : "idle";
@@ -347,17 +617,24 @@ function VRMAvatar({
       action.enabled = true;
       action.clampWhenFinished = !actionConfig.loop;
       action.setLoop(actionConfig.loop ? LoopRepeat : LoopOnce, actionConfig.loop ? Infinity : 1);
-      action.fadeIn(0.18);
+      action.fadeIn(ACTION_CROSSFADE_SECONDS);
       action.play();
 
       if (previousAction && previousAction !== action) {
-        previousAction.fadeOut(0.18);
+        previousAction.fadeOut(ACTION_CROSSFADE_SECONDS);
       }
 
       stopNonActiveActions(action);
       activeActionRef.current = action;
       currentSourceRef.current = "clip";
       proceduralRef.current = { action: nextAction, elapsed: 0 };
+      console.debug("[BuddyVRM] action switched", {
+        activeActionCount: Array.from(createdActionsRef.current.values()).filter((candidate) => candidate?.enabled && candidate.weight > 0).length,
+        action: nextAction,
+        modelId,
+        source: "clip",
+        vrmUrl,
+      });
       return;
     }
 
@@ -368,31 +645,46 @@ function VRMAvatar({
       idleAction.enabled = true;
       idleAction.clampWhenFinished = false;
       idleAction.setLoop(LoopRepeat, Infinity);
-      idleAction.fadeIn(0.18);
+      idleAction.fadeIn(ACTION_CROSSFADE_SECONDS);
       idleAction.play();
 
       if (previousAction && previousAction !== idleAction) {
-        previousAction.fadeOut(0.18);
+        previousAction.fadeOut(ACTION_CROSSFADE_SECONDS);
       }
 
       stopNonActiveActions(idleAction);
       activeActionRef.current = idleAction;
       currentSourceRef.current = "clip";
       proceduralRef.current = { action: DEFAULT_ACTION, elapsed: 0 };
+      console.debug("[BuddyVRM] action switched", {
+        activeActionCount: Array.from(createdActionsRef.current.values()).filter((candidate) => candidate?.enabled && candidate.weight > 0).length,
+        action: DEFAULT_ACTION,
+        modelId,
+        source: "idle-fallback",
+        vrmUrl,
+      });
       onActionFinishedRef.current?.(nextAction);
       return;
     }
 
-    activeActionRef.current?.fadeOut(0.18);
+    activeActionRef.current?.fadeOut(ACTION_CROSSFADE_SECONDS);
     stopNonActiveActions();
     activeActionRef.current = null;
     currentSourceRef.current = proceduralEnabled ? "procedural" : "idle";
     proceduralRef.current = { action: nextAction, elapsed: 0 };
+    console.debug("[BuddyVRM] action switched", {
+      activeActionCount: 0,
+      action: nextAction,
+      modelId,
+      source: currentSourceRef.current,
+      vrmUrl,
+    });
   }, [
     actionNonce,
     currentAction,
     loadedActions[DEFAULT_ACTION],
     loadedActions[currentAction],
+    modelId,
     modelConfig?.preferProceduralOnly,
     proceduralEnabled,
     resolvedActions[currentAction],
@@ -638,6 +930,33 @@ function VRMAvatar({
     lockAnchorTransform();
   });
 
+  useEffect(() => {
+    if (!vrm?.scene) {
+      return;
+    }
+
+    let sceneRoot = vrm.scene;
+    while (sceneRoot.parent) {
+      sceneRoot = sceneRoot.parent;
+    }
+
+    const activeScenes = [];
+
+    sceneRoot.traverse?.((node) => {
+      if (node.userData?.isBuddyModelRoot) {
+        activeScenes.push(node.userData.renderedModelId ?? node.name ?? node.uuid);
+      }
+    });
+
+    console.debug("[BuddyVRM] active model check", {
+      activeModelCount: activeScenes.length,
+      activeModelIds: activeScenes,
+      renderedModelId: modelId ?? vrmUrl,
+      selectedModelId: modelId ?? vrmUrl,
+      vrmUrl,
+    });
+  }, [modelId, vrm, vrmUrl]);
+
   if (!vrm || !fit) return null;
 
   if (vrmUrl === NARUTO_VRM_URL) {
@@ -657,7 +976,10 @@ function VRMAvatar({
   return (
     <group ref={entranceGroupRef}>
       <group ref={groupRef} scale={scale}>
-        <primitive object={vrm.scene} position={[-fit.center.x, -fit.minY + (modelConfig?.yOffset ?? 0), -fit.center.z]} />
+        <primitive
+          object={vrm.scene}
+          position={[-fit.center.x, -fit.minY + (modelConfig?.yOffset ?? 0), -fit.center.z]}
+        />
       </group>
     </group>
   );
@@ -667,6 +989,7 @@ export function BuddyVRM({
   actionNonce = 0,
   currentAction = DEFAULT_ACTION,
   entranceSequenceId = 0,
+  modelId,
   onActionFinished,
   onReady,
   onStateChange,
@@ -677,9 +1000,10 @@ export function BuddyVRM({
   const [loadedActions, setLoadedActions] = useState({});
   const [loadingActions, setLoadingActions] = useState({});
   const [resolvedActions, setResolvedActions] = useState({});
-  const [warmupState, setWarmupState] = useState({ completed: 0, total: CORE_ACTIONS.length, visibleReady: false });
+  const [warmupState, setWarmupState] = useState({ completed: 0, total: IMMEDIATE_ACTIONS.length, visibleReady: false });
   const loadedActionNamesRef = useRef(new Set());
   const loadingActionNamesRef = useRef(new Set());
+  const modelSessionRef = useRef(0);
   const modelConfig = MODEL_CONFIGS[vrmUrl] ?? MODEL_CONFIGS[DEFAULT_VRM_URL];
   const sharedActionAliases = useMemo(() => {
     const aliasMap = new Map();
@@ -694,7 +1018,11 @@ export function BuddyVRM({
     return aliasMap;
   }, []);
 
-  const registerLoadedClip = (actionConfig, actionName, clip) => {
+  const registerLoadedClip = (actionConfig, actionName, clip, sessionId) => {
+    if (sessionId !== modelSessionRef.current) {
+      return;
+    }
+
     const aliasKey = `${actionConfig.format}::${actionConfig.url}`;
     const aliases = sharedActionAliases.get(aliasKey) ?? [actionName];
 
@@ -738,7 +1066,11 @@ export function BuddyVRM({
     });
   };
 
-  const markActionLoading = (actionConfig, actionName) => {
+  const markActionLoading = (actionConfig, actionName, sessionId) => {
+    if (sessionId !== modelSessionRef.current) {
+      return;
+    }
+
     const aliasKey = `${actionConfig.format}::${actionConfig.url}`;
     const aliases = sharedActionAliases.get(aliasKey) ?? [actionName];
 
@@ -752,14 +1084,18 @@ export function BuddyVRM({
     });
   };
 
-  const preloadAction = async (actionName, sourceVrm = vrm) => {
+  const preloadAction = async (actionName, sourceVrm = vrm, sessionId = modelSessionRef.current) => {
     const actionConfig = ACTION_LIBRARY[actionName];
 
     if (!actionConfig || !actionConfig.useClip || loadedActionNamesRef.current.has(actionName) || loadingActionNamesRef.current.has(actionName)) {
       return Boolean(loadedActionNamesRef.current.has(actionName));
     }
 
-    markActionLoading(actionConfig, actionName);
+    if (sessionId !== modelSessionRef.current) {
+      return false;
+    }
+
+    markActionLoading(actionConfig, actionName, sessionId);
     const clip = await loadCachedMotionClip({
       actionName,
       format: actionConfig.format,
@@ -767,16 +1103,25 @@ export function BuddyVRM({
       vrm: sourceVrm,
       vrmUrl,
     });
-    registerLoadedClip(actionConfig, actionName, clip);
+
+    if (sessionId !== modelSessionRef.current) {
+      return false;
+    }
+
+    registerLoadedClip(actionConfig, actionName, clip, sessionId);
     return Boolean(clip);
   };
+
+  useEffect(() => {
+    modelSessionRef.current += 1;
+  }, [vrmUrl, modelId]);
 
   useEffect(() => {
     if (!vrm) {
       setLoadedActions({});
       setLoadingActions({});
       setResolvedActions({});
-      setWarmupState({ completed: 0, total: CORE_ACTIONS.length, visibleReady: false });
+      setWarmupState({ completed: 0, total: IMMEDIATE_ACTIONS.length, visibleReady: false });
       loadedActionNamesRef.current = new Set();
       loadingActionNamesRef.current = new Set();
       return;
@@ -786,7 +1131,7 @@ export function BuddyVRM({
       setLoadedActions({});
       setLoadingActions({});
       setResolvedActions({});
-      setWarmupState({ completed: CORE_ACTIONS.length, total: CORE_ACTIONS.length, visibleReady: true });
+      setWarmupState({ completed: IMMEDIATE_ACTIONS.length, total: IMMEDIATE_ACTIONS.length, visibleReady: true });
       loadedActionNamesRef.current = new Set();
       loadingActionNamesRef.current = new Set();
       return;
@@ -794,21 +1139,22 @@ export function BuddyVRM({
 
     let cancelled = false;
     const cleanupTasks = [];
+    const sessionId = modelSessionRef.current;
     setResolvedActions({});
     setLoadingActions({});
-    setWarmupState({ completed: 0, total: CORE_ACTIONS.length, visibleReady: false });
+    setWarmupState({ completed: 0, total: IMMEDIATE_ACTIONS.length, visibleReady: false });
     loadedActionNamesRef.current = new Set();
     loadingActionNamesRef.current = new Set();
 
-    CORE_ACTIONS.forEach((actionName, index) => {
+    IMMEDIATE_ACTIONS.forEach((actionName, index) => {
       cleanupTasks.push(
         scheduleBackgroundTask(async () => {
           if (index > 0) {
             await new Promise((resolve) => window.setTimeout(resolve, index * 160));
           }
 
-          await preloadAction(actionName, vrm);
-          if (cancelled) return;
+          await preloadAction(actionName, vrm, sessionId);
+          if (cancelled || sessionId !== modelSessionRef.current) return;
 
           setWarmupState((current) => {
             const completed = Math.min(current.total, current.completed + 1);
@@ -818,7 +1164,12 @@ export function BuddyVRM({
               visibleReady: completed > 0,
             };
           });
-        }),
+          console.debug("[BuddyVRM] core action ready", {
+            action: actionName,
+            modelId,
+            vrmUrl,
+          });
+        }, index * 100),
       );
     });
 
@@ -826,23 +1177,30 @@ export function BuddyVRM({
       cancelled = true;
       cleanupTasks.forEach((cleanup) => cleanup?.());
     };
-  }, [modelConfig.preferProceduralOnly, sharedActionAliases, vrm, vrmUrl]);
+  }, [modelConfig.preferProceduralOnly, modelId, sharedActionAliases, vrm, vrmUrl]);
 
   useEffect(() => {
-    if (!vrm || modelConfig.preferProceduralOnly || loading) {
+    if (!vrm || modelConfig.preferProceduralOnly || loading || !warmupState.visibleReady) {
       return undefined;
     }
 
     let cancelled = false;
     const cleanupTasks = [];
+    const sessionId = modelSessionRef.current;
 
-    COMMON_ACTIONS.filter((actionName) => !CORE_ACTIONS.includes(actionName)).forEach((actionName, index) => {
+    [...DEFERRED_CORE_ACTIONS, ...COMMON_ACTIONS.filter((actionName) => !IMMEDIATE_ACTIONS.includes(actionName) && !DEFERRED_CORE_ACTIONS.includes(actionName))].forEach((actionName, index) => {
       cleanupTasks.push(
         scheduleBackgroundTask(async () => {
-          await new Promise((resolve) => window.setTimeout(resolve, 260 + index * 120));
-          if (cancelled) return;
-          await preloadAction(actionName, vrm);
-        }),
+          if (cancelled || sessionId !== modelSessionRef.current) return;
+          await preloadAction(actionName, vrm, sessionId);
+          if (cancelled || sessionId !== modelSessionRef.current) return;
+
+          console.debug("[BuddyVRM] deferred action cached", {
+            action: actionName,
+            modelId,
+            vrmUrl,
+          });
+        }, 900 + index * 180),
       );
     });
 
@@ -850,7 +1208,7 @@ export function BuddyVRM({
       cancelled = true;
       cleanupTasks.forEach((cleanup) => cleanup?.());
     };
-  }, [loading, modelConfig.preferProceduralOnly, vrm, vrmUrl]);
+  }, [loading, modelConfig.preferProceduralOnly, modelId, vrm, vrmUrl, warmupState.visibleReady]);
 
   useEffect(() => {
     if (!vrm || modelConfig.preferProceduralOnly) {
@@ -865,11 +1223,13 @@ export function BuddyVRM({
     }
 
     const loadAction = async () => {
+      const sessionId = modelSessionRef.current;
+
       if (!RARE_ACTIONS.has(nextAction) && warmupState.completed < warmupState.total) {
         return;
       }
 
-      await preloadAction(nextAction, vrm);
+      await preloadAction(nextAction, vrm, sessionId);
     };
 
     void loadAction();
@@ -905,6 +1265,7 @@ export function BuddyVRM({
         currentAction={currentAction}
         entranceSequenceId={entranceSequenceId}
         loadedActions={loadedActions}
+        modelId={modelId}
         modelConfig={modelConfig}
         onActionFinished={onActionFinished}
         proceduralEnabled={proceduralFallback}

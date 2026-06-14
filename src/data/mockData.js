@@ -35,19 +35,19 @@ export const buddies = [
   {
     id: "chasam",
     name: "Chasam",
-    role: "Mascot mochi h?ng",
-    type: "Mascot mochi h?ng",
-    emoji: "??",
+    role: "Mascot mochi hồng",
+    type: "Mascot mochi hồng",
+    emoji: "🍡",
     gradient: "from-pink-50 via-rose-50 to-orange-50",
-    description: "Buddy ng?t ng?o, h?p ?? l?m linh v?t ch?nh trong Buddy Room v?i c?c skin qu? t?ng d? thay ??i.",
-    personality: "D? th??ng, m?m m?i, c? c?m gi?c nh? m?t nh?n v?t g?i ?m nh? lu?n ? ?? ?? c? v? b?n h?c t?ng ch?t m?t.",
+    description: "Buddy ngọt ngào, hợp để làm linh vật chính trong Buddy Room với các skin quà tặng dễ thay đổi.",
+    personality: "Dễ thương, mềm mại, có cảm giác như một nhân vật gối ôm nhỏ luôn ở đó để cổ vũ bạn học từng chút một.",
     fallbackImage: "/buddies/chasam/icon.png",
     accent: "rose",
     mood: "happy",
     level: 9,
     xp: 590,
     nextLevelXp: 1000,
-    skills: ["??ng vi?n nh? nh?ng", "Bi?n ph?ng h?c th?nh cozy corner", "M? kh?a skin theo ph?n th??ng"],
+    skills: ["Động viên nhẹ nhàng", "Biến phòng học thành cozy corner", "Mở khóa skin theo phần thưởng"],
     tags: ["Cute", "Reward", "Room", "Daily"],
   },
   {
@@ -279,14 +279,17 @@ export const progress = {
 };
 
 export const rewards = [
-  { id: "starter", name: "Starter Scholar", type: "badge", icon: Medal, unlocked: true, description: "Danh hieu khoi dong cho nhung nguoi bat dau giu nhip hoc deu." },
-  { id: "streak", name: "7-Day Focus", type: "badge", icon: Flame, unlocked: true, description: "Danh dau chuoi hoc lien tiep va kha nang giu guong focus." },
-  { id: "grammar", name: "Grammar Explorer", type: "badge", icon: Award, unlocked: false, description: "Mo khoa khi hoan thanh cac quiz ngu phap cot moc." },
-  { id: "chasam-maneki", name: "Chasam Maneki Skin", type: "item", icon: Sparkles, price: 180, unlocked: true, previewImage: "/buddies/skinchasam/140maneki/icon.png", description: "Skin reward cho Chasam, dung de doi giao dien buddy ngay trong room." },
-  { id: "halo", name: "Focus Halo", type: "item", icon: Sparkles, price: 120, unlocked: false, description: "Item hieu ung du kien dung cho phong buddy va scene focus." },
-  { id: "night", name: "Calm Night Theme", type: "theme", icon: MoonStar, price: 220, unlocked: false, description: "Theme room du kien de mo rong he thong background ve sau." },
-  { id: "tree", name: "Groot Seed", type: "item", icon: TreePine, price: 180, unlocked: true, description: "Vat pham progression mau xanh cho room progression sau nay." },
+  { id: "starter", name: "Starter Scholar", type: "badge", icon: Medal, unlocked: true, description: "Danh hiệu khởi động cho những người bắt đầu giữ nhịp học đều." },
+  { id: "streak", name: "7-Day Focus", type: "badge", icon: Flame, unlocked: true, description: "Đánh dấu chuỗi học liên tiếp và khả năng giữ guồng focus." },
+  { id: "grammar", name: "Grammar Explorer", type: "badge", icon: Award, unlocked: false, description: "Mở khóa khi hoàn thành các quiz ngữ pháp cột mốc." },
+  { id: "chasam-maneki", name: "Chasam Maneki Skin", type: "item", icon: Sparkles, price: 180, unlocked: true, previewImage: "/buddies/skinchasam/140maneki/icon.png", description: "Skin reward cho Chasam, dùng để đổi giao diện buddy ngay trong room." },
+  { id: "halo", name: "Focus Halo", type: "item", icon: Sparkles, price: 120, unlocked: false, description: "Item hiệu ứng dự kiến dùng cho phòng buddy và scene focus." },
+  { id: "night", name: "Calm Night Theme", type: "theme", icon: MoonStar, price: 220, unlocked: false, description: "Theme room dự kiến để mở rộng hệ thống background về sau." },
+  { id: "tree", name: "Groot Seed", type: "item", icon: TreePine, price: 180, unlocked: true, description: "Vật phẩm progression màu xanh cho room progression sau này." },
 ];
+
+const standardModelActions = ["idle", "relax", "thinking", "lookAround", "clapping", "goodbye", "jump", "angry", "blush", "sad", "sleepy", "surprised", "greeting", "peace", "shoot", "spin", "pose", "catwalk", "squat"];
+const narutoModelActions = [...standardModelActions, "rasengan"];
 
 export const companionModels = [
   {
@@ -301,7 +304,7 @@ export const companionModels = [
     source: "shop",
     unlocked: true,
     vrmUrl: "/vrm-models/Changli.vrm",
-    actions: ["idle", "relax", "thinking", "lookAround", "clapping", "goodbye", "jump", "angry", "blush", "sad", "sleepy", "surprised", "greeting", "peace", "shoot", "spin", "pose", "catwalk", "squat", "rasengan"],
+    actions: standardModelActions,
     accent: "rose",
   },
   {
@@ -316,7 +319,7 @@ export const companionModels = [
     source: "shop",
     unlocked: true,
     vrmUrl: "/vrm-models/Yinlin.vrm",
-    actions: ["idle", "relax", "thinking", "lookAround", "clapping", "goodbye", "jump", "angry", "blush", "sad", "sleepy", "surprised", "greeting", "peace", "shoot", "spin", "pose", "catwalk", "squat", "rasengan"],
+    actions: standardModelActions,
     accent: "violet",
   },
   {
@@ -331,7 +334,7 @@ export const companionModels = [
     source: "shop",
     unlocked: true,
     vrmUrl: "/vrm-models/Carlotta.vrm",
-    actions: ["idle", "relax", "thinking", "lookAround", "clapping", "goodbye", "jump", "angry", "blush", "sad", "sleepy", "surprised", "greeting", "peace", "shoot", "spin", "pose", "catwalk", "squat", "rasengan"],
+    actions: standardModelActions,
     accent: "cyan",
   },
   {
@@ -346,7 +349,7 @@ export const companionModels = [
     source: "shop",
     unlocked: true,
     vrmUrl: "/vrm-models/naruto.vrm",
-    actions: ["idle", "relax", "thinking", "lookAround", "clapping", "goodbye", "jump", "angry", "blush", "sad", "sleepy", "surprised", "greeting", "peace", "shoot", "spin", "pose", "catwalk", "squat", "rasengan"],
+    actions: narutoModelActions,
     accent: "amber",
   },
   {
@@ -361,7 +364,7 @@ export const companionModels = [
     source: "shop",
     unlocked: true,
     vrmUrl: "/vrm-models/8590256991748008892.vrm",
-    actions: ["idle", "relax", "thinking", "lookAround", "clapping", "goodbye", "jump", "angry", "blush", "sad", "sleepy", "surprised", "greeting", "peace", "shoot", "spin", "pose", "catwalk", "squat"],
+    actions: standardModelActions,
     accent: "emerald",
   },
   {
@@ -376,7 +379,7 @@ export const companionModels = [
     source: "shop",
     unlocked: true,
     vrmUrl: "/vrm-models/8329890252317737768.vrm",
-    actions: ["idle", "relax", "thinking", "lookAround", "clapping", "goodbye", "jump", "angry", "blush", "sad", "sleepy", "surprised", "greeting", "peace", "shoot", "spin", "pose", "catwalk", "squat"],
+    actions: standardModelActions,
     accent: "indigo",
   },
   {
@@ -391,7 +394,7 @@ export const companionModels = [
     source: "shop",
     unlocked: true,
     vrmUrl: "/vrm-models/sample.vrm",
-    actions: ["idle", "relax", "thinking", "lookAround", "clapping", "goodbye", "jump", "angry", "blush", "sad", "sleepy", "surprised", "greeting", "peace", "shoot", "spin", "pose", "catwalk", "squat"],
+    actions: standardModelActions,
     accent: "amber",
   },
   {
@@ -406,7 +409,7 @@ export const companionModels = [
     source: "shop",
     unlocked: true,
     vrmUrl: "/vrm-models/vita.vrm",
-    actions: ["idle", "relax", "thinking", "lookAround", "clapping", "goodbye", "jump", "angry", "blush", "sad", "sleepy", "surprised", "greeting", "peace", "shoot", "spin", "pose", "catwalk", "squat"],
+    actions: standardModelActions,
     accent: "cyan",
   },
   {
@@ -421,7 +424,7 @@ export const companionModels = [
     source: "shop",
     unlocked: true,
     vrmUrl: "/vrm-models/vivi.vrm",
-    actions: ["idle", "relax", "thinking", "lookAround", "clapping", "goodbye", "jump", "angry", "blush", "sad", "sleepy", "surprised", "greeting", "peace", "shoot", "spin", "pose", "catwalk", "squat"],
+    actions: standardModelActions,
     accent: "rose",
   },
   {
@@ -436,7 +439,7 @@ export const companionModels = [
     source: "achievement",
     unlocked: true,
     vrmUrl: "/vrm-models/6493143135142452442.vrm",
-    actions: ["idle", "relax", "thinking", "lookAround", "clapping", "goodbye", "jump", "angry", "blush", "sad", "sleepy", "surprised", "greeting", "peace", "shoot", "spin", "pose", "catwalk", "squat"],
+    actions: standardModelActions,
     accent: "violet",
   },
 ];

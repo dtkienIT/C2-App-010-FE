@@ -97,7 +97,7 @@ export function Buddy3DCard({ buddy, onSelect, selected = false }: Buddy3DCardPr
         </div>
       )}
 
-      <div className="relative z-10 overflow-hidden rounded-[1.7rem] border border-border/70 bg-card/35 pt-1 backdrop-blur dark:!border-white/10 dark:!bg-slate-950/72">
+      <div className="relative z-10 overflow-hidden rounded-[1.7rem] border border-border/70 bg-card/35 pt-1 dark:!border-white/10 dark:!bg-slate-950/72">
         <Buddy3DStage
           accent={buddy.accent}
           className="relative z-10"

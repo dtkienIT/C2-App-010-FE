@@ -27,7 +27,7 @@ export function ProgressPage() {
         if (!cancelled) setProgress(data);
       })
       .catch(() => {
-        if (!cancelled) setError("Khong tai duoc thong ke. Hay kiem tra backend roi thu lai.");
+        if (!cancelled) setError("Không tải được thống kê. Hãy kiểm tra backend rồi thử lại.");
       });
     return () => {
       cancelled = true;
@@ -35,18 +35,18 @@ export function ProgressPage() {
   }, [mode]);
 
   if (mode === "guest") {
-    return <Card className="p-6 text-center font-bold text-muted-foreground">Dang nhap de xem thong ke va AI mentor that.</Card>;
+    return <Card className="p-6 text-center font-bold text-muted-foreground">Đăng nhập để xem thống kê và AI mentor thật.</Card>;
   }
 
   if (!progress) {
-    return <Card className="p-6 text-center font-black text-foreground">{error || "Dang tai thong ke..."}</Card>;
+    return <Card className="p-6 text-center font-black text-foreground">{error || "Đang tải thống kê..."}</Card>;
   }
 
   const xp7Days = progress.xp7Days ?? progress.weeklyActivity ?? [];
   const maxXp = Math.max(...xp7Days, 1);
   const strongestTopic = progress.strongTopics[0] ?? "Vocabulary";
   const weakestTopic = progress.weakTopics[0] ?? "Grammar";
-  const mentorSummary = progress.aiRoadmap[0] ?? "Chua co roadmap moi. Hoan thanh them mot session de AI mentor cap nhat huong hoc tiep theo.";
+  const mentorSummary = progress.aiRoadmap[0] ?? "Chưa có roadmap mới. Hoàn thành thêm một session để AI mentor cập nhật hướng học tiếp theo.";
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -54,17 +54,17 @@ export function ProgressPage() {
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">AI Mentor</p>
-            <h1 className="mt-2 text-3xl font-black tracking-tight text-foreground md:text-5xl">Roadmap hoc tap gon, ro, de doc duoc ca light mode va dark mode.</h1>
+            <h1 className="mt-2 text-3xl font-black tracking-tight text-foreground md:text-5xl">Roadmap học tập gọn, rõ, dễ đọc được cả light mode và dark mode.</h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground md:text-base">
-              Thay vi nhieu khoi mau va gradient, man hinh nay uu tien mot tom tat ro rang: ban dang o dau, can on gi, va AI mentor de xuat buoc tiep theo nao.
+              Thay vì nhiều khối màu và gradient, màn hình này ưu tiên một tóm tắt rõ ràng: bạn đang ở đâu, cần ôn gì, và AI mentor đề xuất bước tiếp theo nào.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Link className="primary-button" to="/quiz">
-                Lam quiz tiep
+                Làm quiz tiếp
                 <ArrowRight size={16} />
               </Link>
               <Link className="secondary-button" to="/buddy-room">
-                Mo Buddy Room
+                Mở Buddy Room
               </Link>
             </div>
           </div>
@@ -75,17 +75,17 @@ export function ProgressPage() {
               </div>
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">Mentor summary</p>
-                <h2 className="mt-1 text-lg font-black text-foreground">Buoc uu tien tiep theo</h2>
+                <h2 className="mt-1 text-lg font-black text-foreground">Bước ưu tiên tiếp theo</h2>
               </div>
             </div>
             <p className="mt-4 text-sm leading-7 text-foreground">{mentorSummary}</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl bg-muted p-4">
-                <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Manh nhat</p>
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Mạnh nhất</p>
                 <p className="mt-2 font-black text-foreground">{strongestTopic}</p>
               </div>
               <div className="rounded-2xl bg-muted p-4">
-                <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Can on lai</p>
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Cần ôn lại</p>
                 <p className="mt-2 font-black text-foreground">{weakestTopic}</p>
               </div>
             </div>
@@ -94,10 +94,10 @@ export function ProgressPage() {
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={Clock} label="Tong thoi gian hoc" value={progress.studyTime} tone="blue" />
-        <StatCard icon={Trophy} label="Quiz hoan thanh" value={String(progress.quizCompleted ?? progress.totalQuizzes)} tone="violet" />
-        <StatCard icon={Target} label="Do chinh xac" value={`${progress.accuracy}%`} tone="green" />
-        <StatCard icon={Bot} label="AI roadmap" value={`${progress.aiRoadmap.length} buoc`} tone="orange" />
+        <StatCard icon={Clock} label="Tổng thời gian học" value={progress.studyTime} tone="blue" />
+        <StatCard icon={Trophy} label="Quiz hoàn thành" value={String(progress.quizCompleted ?? progress.totalQuizzes)} tone="violet" />
+        <StatCard icon={Target} label="Độ chính xác" value={`${progress.accuracy}%`} tone="green" />
+        <StatCard icon={Bot} label="AI roadmap" value={`${progress.aiRoadmap.length} bước`} tone="orange" />
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_380px]">
@@ -105,9 +105,9 @@ export function ProgressPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">Weekly activity</p>
-              <h2 className="mt-2 text-2xl font-black text-foreground">XP 7 ngay gan nhat</h2>
+              <h2 className="mt-2 text-2xl font-black text-foreground">XP 7 ngày gần nhất</h2>
             </div>
-            <span className="rounded-full bg-muted px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Song song voi roadmap</span>
+            <span className="rounded-full bg-muted px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Song song với roadmap</span>
           </div>
           <div className="mt-6 grid h-72 grid-cols-7 items-end gap-3 rounded-[1.5rem] bg-muted/60 p-5">
             {xp7Days.map((xp, index) => (
@@ -122,10 +122,10 @@ export function ProgressPage() {
         <div className="space-y-6">
           <Card className="p-6">
             <p className="text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">Strong and weak topics</p>
-            <h2 className="mt-2 text-2xl font-black text-foreground">Chu de can bang lai</h2>
+            <h2 className="mt-2 text-2xl font-black text-foreground">Chủ đề cần cân bằng lại</h2>
             <div className="mt-5 space-y-5">
               <div>
-                <p className="text-sm font-black text-foreground">Chu de manh</p>
+                <p className="text-sm font-black text-foreground">Chủ đề mạnh</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {progress.strongTopics.map((topic) => (
                     <span className="success-soft rounded-full px-4 py-2 text-sm font-bold text-emerald-700 dark:text-emerald-200" key={topic}>
@@ -135,7 +135,7 @@ export function ProgressPage() {
                 </div>
               </div>
               <div>
-                <p className="text-sm font-black text-foreground">Chu de can on</p>
+                <p className="text-sm font-black text-foreground">Chủ đề cần ôn</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {progress.weakTopics.map((topic) => (
                     <span className="warning-soft rounded-full px-4 py-2 text-sm font-bold text-orange-700 dark:text-orange-200" key={topic}>
@@ -154,7 +154,7 @@ export function ProgressPage() {
               </div>
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">AI roadmap</p>
-                <h2 className="mt-1 text-2xl font-black text-foreground">3 buoc nen lam tiep</h2>
+                <h2 className="mt-1 text-2xl font-black text-foreground">3 bước nên làm tiếp</h2>
               </div>
             </div>
             <div className="mt-5 space-y-3">

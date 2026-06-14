@@ -217,32 +217,32 @@ export function BuddyRoomPage() {
                   {activeBuddy.name}
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-muted-foreground md:text-base">
-                  Dang hien thi model 2D va background room 2D rieng cua buddy nay.
+                  Đang hiển thị model 2D và background room 2D riêng của buddy này.
                 </p>
               </div>
             )}
 
             <div className="flex flex-wrap gap-3">
               <Link className="secondary-button" to="/buddies">
-                doi buddy
+                Đổi buddy
               </Link>
               <Link className="secondary-button" to="/buddy-3d">
-                mo cua hang 3D
+                Mở cửa hàng 3D
                 <ArrowRight size={16} />
               </Link>
               {isUsingBuddy3D ? (
                 <button className="primary-button" onClick={disableBuddy3D} type="button">
-                  tat Buddy 3D
+                  Tắt Buddy 3D
                 </button>
               ) : hasSavedBuddy3D ? (
                 <button className="primary-button" onClick={enableBuddy3D} type="button">
-                  bat lai Buddy 3D
+                  Bật lại Buddy 3D
                 </button>
               ) : null}
               {isChasam2D ? (
                 <>
                   <button className="secondary-button" onClick={() => setIsSkinTrayOpen((current) => !current)} type="button">
-                    <Palette size={16} /> skin buddy
+                    <Palette size={16} /> Skin buddy
                   </button>
                   <div className="flex flex-wrap gap-2 rounded-full border border-border/70 bg-card/72 px-2 py-2 shadow-sm">
                     {(Object.keys(chasamRoomThemes) as BuddyRoomBackgroundId[]).map((backgroundId) => {
@@ -280,7 +280,7 @@ export function BuddyRoomPage() {
               />
             ) : (
               <div className="overflow-hidden rounded-[1.85rem] border border-border/70 bg-card/60 p-6 text-sm font-semibold text-muted-foreground">
-                Dang hien thi model 3D va background room 3D.
+                Đang hiển thị model 3D và background room 3D.
               </div>
             )
           ) : isChasam2D ? (
@@ -323,7 +323,7 @@ export function BuddyRoomPage() {
                     <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
                       <div>
                         <p className="text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">Skin closet</p>
-                        <h2 className="mt-1 text-lg font-black text-foreground">Chon skin buddy</h2>
+                        <h2 className="mt-1 text-lg font-black text-foreground">Chọn skin buddy</h2>
                       </div>
                       <button className="rounded-full bg-muted p-2 text-muted-foreground transition hover:text-foreground" onClick={() => setIsSkinTrayOpen(false)} type="button">
                         <X size={16} />

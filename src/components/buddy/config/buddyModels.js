@@ -1,7 +1,7 @@
 export const DEFAULT_VRM_URL = "/vrm-models/vita.vrm";
 export const NARUTO_VRM_URL = "/vrm-models/naruto.vrm";
 export const TARGET_HEIGHT = 2;
-export const FORCED_CAMERA_ZOOM = 180;
+export const FORCED_CAMERA_ZOOM = 255;
 export const MIN_CAMERA_ZOOM = FORCED_CAMERA_ZOOM;
 export const MAX_CAMERA_ZOOM = 420;
 

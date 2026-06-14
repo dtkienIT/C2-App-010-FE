@@ -285,7 +285,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       const nextUser = await applySupabaseSession(data.session);
       if (!nextUser) {
-        throw new Error("Dang nhap chua hoan tat. Vui long thu lai.");
+        throw new Error("Đăng nhập chưa hoàn tất. Vui lòng thử lại.");
       }
       setUser(nextUser);
       setMode("authenticated");
@@ -322,7 +322,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       clearStoredAuth();
-      throw new Error("Tai khoan da duoc tao. Hay xac nhan email truoc khi dang nhap neu Supabase yeu cau.");
+      throw new Error("Tài khoản đã được tạo. Hãy xác nhận email trước khi đăng nhập nếu Supabase yêu cầu.");
     }
 
     const data = await registerWithApi(email, password);

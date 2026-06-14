@@ -17,7 +17,7 @@ import {
   Wallet,
   X,
 } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { type ReactNode, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -65,16 +65,18 @@ function MetricCard({
   const progressValue = current && max ? (current / max) * 100 : 0;
   return (
     <div
-      className={`hidden h-16 items-center gap-3 rounded-xl border border-border/80 bg-card/88 px-4 text-card-foreground shadow-sm backdrop-blur xl:flex ${
-        wide ? "min-w-[390px]" : "min-w-[160px]"
+      className={`hidden h-14 flex-1 items-center gap-2 rounded-xl border border-border/80 bg-card/88 px-2.5 text-card-foreground shadow-sm backdrop-blur xl:flex min-[1600px]:h-16 min-[1600px]:gap-3 min-[1600px]:px-3 2xl:px-4 ${
+        wide
+          ? "basis-[210px] min-w-[190px] xl:basis-[228px] xl:min-w-[208px] min-[1600px]:basis-[280px] min-[1600px]:min-w-[240px] 2xl:basis-[390px] 2xl:min-w-[390px]"
+          : "basis-[96px] min-w-[88px] xl:basis-[104px] xl:min-w-[96px] min-[1600px]:basis-[132px] min-[1600px]:min-w-[120px] 2xl:basis-[160px] 2xl:min-w-[160px]"
       }`}
     >
-      <div className="grid h-11 w-11 place-items-center rounded-lg bg-muted text-accent">{icon}</div>
+      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted text-accent min-[1600px]:h-10 min-[1600px]:w-10 2xl:h-11 2xl:w-11">{icon}</div>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center justify-between gap-2">
           <p className="text-xs font-black uppercase text-muted-foreground">{label}</p>
           {wide ? (
-            <p className="text-xs font-bold text-muted-foreground">
+            <p className="hidden text-[11px] font-bold text-muted-foreground min-[1600px]:block">
               {current ?? 0} / {max ?? 1000} XP
             </p>
           ) : null}
@@ -87,7 +89,7 @@ function MetricCard({
             />
           </div>
         ) : (
-          <p className="text-xl font-black text-foreground">{value}</p>
+          <p className="text-base font-black leading-none text-foreground min-[1600px]:text-xl">{value}</p>
         )}
       </div>
     </div>
@@ -257,7 +259,7 @@ export function AppLayout() {
 
       <div className="lg:pl-[276px]">
         <header className="relative z-40 border-b border-border/80 bg-background/92 px-3 py-2 backdrop-blur-xl lg:sticky lg:top-0 lg:px-7 lg:py-3 lg:backdrop-blur-2xl">
-          <div className="mx-auto flex h-14 max-w-[1500px] items-center justify-between gap-4 lg:h-16">
+          <div className="mx-auto flex h-14 max-w-[1500px] items-center justify-between gap-3 lg:h-auto lg:min-h-[4rem] lg:flex-wrap lg:gap-y-3 2xl:flex-nowrap 2xl:gap-4">
             <div className="flex items-center gap-3 lg:hidden">
               <button
                 aria-label="Mở menu"
@@ -270,13 +272,13 @@ export function AppLayout() {
               <div className="text-sm font-black text-foreground">Buddy Study</div>
             </div>
 
-            <div className="hidden flex-1 items-center gap-3 lg:flex">
+            <div className="hidden min-w-0 flex-1 flex-wrap items-center gap-2 xl:flex 2xl:flex-nowrap 2xl:gap-3">
               <MetricCard current={learningStats.xp} icon={<Sparkles size={24} />} label={`Level ${learningStats.level}`} max={learningStats.nextLevelXp} value={`${learningStats.xp} XP`} wide />
               <MetricCard icon={<Wallet className="text-amber-500" size={23} />} label="Xu" value={learningStats.coins.toLocaleString("vi-VN")} />
               <MetricCard icon={<Flame className="text-orange-500" size={24} />} label="Streak" value={`${learningStats.streak} ngày`} />
             </div>
 
-            <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            <div className="ml-auto flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">
               <ThemeToggle compact />
               <button
                 className="hidden h-11 w-11 place-items-center rounded-xl border border-border bg-card text-sky-600 shadow-sm transition hover:-translate-y-0.5 sm:grid sm:h-12 sm:w-12"
@@ -295,10 +297,11 @@ export function AppLayout() {
               </button>
 
               <Link
-                className={`group overflow-hidden rounded-xl border shadow-sm transition-[width,transform,background-color,border-color] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 ${
+                aria-expanded={isGuest ? isGuestHeaderExpanded : undefined}
+                className={`group relative overflow-hidden rounded-xl border shadow-sm transition-[width,transform,border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 ${
                   isGuest
-                    ? "flex h-11 w-11 items-center border-amber-400/35 bg-amber-500/12 text-amber-100 hover:w-[188px] dark:border-amber-300/20 dark:bg-amber-400/10 dark:text-amber-100 sm:h-12 sm:w-12 sm:hover:w-[216px]"
-                    : "flex h-11 min-w-0 items-center gap-2 border-border bg-card px-2 py-1.5 text-foreground sm:h-12 sm:gap-3 sm:px-3"
+                    ? `${isGuestHeaderExpanded ? "w-32 justify-start sm:w-36" : "w-11 justify-center sm:w-12"} flex h-11 items-center border-amber-300/60 bg-gradient-to-r from-amber-100/95 via-orange-100/90 to-pink-100/85 text-amber-950 dark:border-amber-300/25 dark:from-amber-500/20 dark:via-orange-500/16 dark:to-pink-500/20 dark:text-amber-50 sm:h-12`
+                    : "flex h-11 min-w-0 max-w-[52px] items-center justify-center gap-2 border-border bg-card px-0 py-1.5 text-foreground min-[1600px]:max-w-[220px] min-[1600px]:justify-start min-[1600px]:px-3 sm:h-12 sm:gap-3"
                 }`}
                 onBlur={() => {
                   if (isGuest) setIsGuestHeaderExpanded(false);
@@ -314,47 +317,80 @@ export function AppLayout() {
                 }}
                 to="/profile"
               >
+                {isGuest ? (
+                  <>
+                    <motion.div
+                      animate={
+                        isGuestHeaderExpanded
+                          ? { opacity: 1, x: 0 }
+                          : { opacity: 0.72, x: -18 }
+                      }
+                      className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/55 to-transparent dark:via-white/12"
+                      initial={false}
+                      transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+                    />
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-amber-400/8 via-transparent to-pink-400/10 dark:from-amber-300/10 dark:via-transparent dark:to-pink-300/10" />
+                  </>
+                ) : null}
                 <div
-                  className={`grid shrink-0 place-items-center text-xs font-black ${
+                  className={`relative z-10 grid shrink-0 place-items-center text-xs font-black ${
                     isGuest
-                      ? "h-11 w-11 rounded-xl bg-amber-300/75 text-amber-950 dark:bg-amber-200/20 dark:text-amber-100 sm:h-12 sm:w-12 sm:text-sm"
+                      ? "h-11 w-11 rounded-xl bg-white/55 text-amber-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] dark:bg-slate-950/25 dark:text-amber-50 sm:h-12 sm:w-12 sm:text-sm"
                       : "h-8 w-8 rounded-lg bg-primary text-primary-foreground sm:h-10 sm:w-10 sm:text-sm"
                   }`}
                 >
                   {user?.avatar ?? "SL"}
                 </div>
                 {isGuest ? (
-                  <AnimatePresence initial={false}>
-                    {isGuestHeaderExpanded ? (
-                      <motion.div
-                        animate={{ opacity: 1, width: "auto" }}
-                        className="flex min-w-0 items-center gap-3 overflow-hidden pl-3 pr-2"
-                        exit={{ opacity: 0, width: 0 }}
-                        initial={{ opacity: 0, width: 0 }}
-                        transition={{ delay: 0.1, type: "spring", bounce: 0, duration: 0.6 }}
+                  <motion.div
+                    animate={
+                      isGuestHeaderExpanded
+                        ? { maxWidth: 92, opacity: 1 }
+                        : { maxWidth: 0, opacity: 0 }
+                    }
+                    className="relative z-10 flex min-w-0 items-center overflow-hidden"
+                    initial={false}
+                    transition={{
+                      duration: isGuestHeaderExpanded ? 0.36 : 0.24,
+                      ease: [0.22, 1, 0.36, 1],
+                    }}
+                  >
+                    <motion.div
+                      animate={
+                        isGuestHeaderExpanded
+                          ? { opacity: 1, x: 0 }
+                          : { opacity: 0, x: -10 }
+                      }
+                      className="flex min-w-0 items-center gap-2 pl-2.5 pr-2"
+                      initial={false}
+                      transition={{
+                        delay: isGuestHeaderExpanded ? 0.08 : 0,
+                        duration: isGuestHeaderExpanded ? 0.26 : 0.18,
+                        ease: [0.22, 1, 0.36, 1],
+                      }}
                       >
-                        <div className="min-w-0">
-                          <p className="max-w-[120px] truncate text-sm font-black">Guest Pass</p>
-                          <p className="text-xs font-semibold text-amber-700 dark:text-amber-200/80">{currentRole}</p>
-                        </div>
-                        <motion.div
-                          animate={{ x: 0, opacity: 1 }}
-                          className="shrink-0 text-amber-700 dark:text-amber-200/80"
-                          initial={{ x: -6, opacity: 0 }}
-                          transition={{ delay: 0.1, type: "spring", bounce: 0, duration: 0.6 }}
-                        >
-                          <ChevronRight size={17} />
-                        </motion.div>
+                      <p className="truncate text-sm font-black text-amber-950 dark:text-amber-50">Guest Pass</p>
+                      <motion.div
+                        animate={isGuestHeaderExpanded ? { x: 0, opacity: 1 } : { x: -6, opacity: 0 }}
+                        className="shrink-0 text-amber-800/80 dark:text-amber-100/80"
+                        initial={false}
+                        transition={{
+                          delay: isGuestHeaderExpanded ? 0.14 : 0,
+                          duration: isGuestHeaderExpanded ? 0.22 : 0.16,
+                          ease: [0.22, 1, 0.36, 1],
+                        }}
+                      >
+                        <ChevronRight size={17} />
                       </motion.div>
-                    ) : null}
-                  </AnimatePresence>
+                    </motion.div>
+                  </motion.div>
                 ) : (
                   <>
-                    <div className="hidden min-w-0 pr-1 sm:block">
+                    <div className="hidden min-w-0 pr-1 min-[1600px]:block">
                       <p className="max-w-[150px] truncate text-sm font-black">{user?.name ?? "Study learner"}</p>
                       <p className="text-xs font-semibold text-muted-foreground">{currentRole}</p>
                     </div>
-                    <ChevronRight className="hidden text-muted-foreground transition group-hover:translate-x-0.5 md:block" size={17} />
+                    <ChevronRight className="hidden text-muted-foreground transition group-hover:translate-x-0.5 min-[1600px]:block" size={17} />
                   </>
                 )}
               </Link>
@@ -377,7 +413,7 @@ export function AppLayout() {
           </div>
         ) : null}
 
-        <main className="mx-auto min-h-[calc(100vh-5.75rem)] max-w-[1500px] overflow-visible px-4 py-6 sm:px-6 lg:px-7 lg:pt-8">
+        <main className="mx-auto min-h-[calc(100vh-5.75rem)] max-w-[1500px] min-w-0 px-4 py-6 sm:px-6 lg:px-7 lg:pt-8">
           <Outlet />
         </main>
       </div>

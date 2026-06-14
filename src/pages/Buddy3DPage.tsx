@@ -13,7 +13,7 @@ const accentTone = {
 } as const;
 
 export function Buddy3DPage() {
-  const { companionModels, equipModel, equippedModelId, isBuddy3DEnabled, roomBackgrounds, selectBackground, selectedBackgroundId } = useCompanionModelStore();
+  const { storeCompanionModels, equipModel, equippedModelId, isBuddy3DEnabled, roomBackgrounds, selectBackground, selectedBackgroundId } = useCompanionModelStore();
   const navigate = useNavigate();
 
   function handleEquipModel(modelId: string) {
@@ -50,7 +50,7 @@ export function Buddy3DPage() {
         </div>
 
         <div className="grid gap-5 md:grid-cols-2">
-          {companionModels.map((model) => {
+          {storeCompanionModels.map((model) => {
             const isEquipped = equippedModelId === model.id;
             const isActive = isEquipped && isBuddy3DEnabled;
 

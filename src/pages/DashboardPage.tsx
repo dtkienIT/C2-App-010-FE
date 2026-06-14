@@ -23,7 +23,7 @@ const loopSteps = [
     icon: Star,
   },
   {
-    title: "3. Buddy lớn lên",
+    title: "3. Mở khóa Buddy",
     text: "Buddy nhận năng lượng theo tiến độ học.",
     icon: Sparkles,
   },
@@ -74,8 +74,8 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[1fr_390px]">
-      <div className="space-y-6">
+    <div className="grid min-w-0 gap-6 2xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="min-w-0 space-y-6">
         <motion.section
           animate={{ opacity: 1, y: 0 }}
           className="hero-surface relative overflow-hidden rounded-[2rem] p-8"
@@ -84,13 +84,13 @@ export function DashboardPage() {
         >
           <div className="absolute bottom-0 right-12 hidden h-56 w-56 rounded-full bg-brand-200/40 blur-3xl lg:block" />
           <div className="absolute right-12 top-8 hidden text-3xl text-amber-400 lg:block">✦</div>
-          <div className="relative grid gap-8 lg:grid-cols-[1fr_330px] lg:items-center">
-            <div>
+          <div className="relative grid min-w-0 gap-8 xl:grid-cols-[minmax(0,1fr)_280px] xl:items-center 2xl:grid-cols-[minmax(0,1fr)_330px]">
+            <div className="min-w-0">
               <span className="soft-chip">
                 <Brain size={16} />
                 AI Study Buddy
               </span>
-              <h1 className="mt-5 max-w-3xl text-4xl font-black leading-[1.05] tracking-tight text-foreground md:text-6xl">
+              <h1 className="mt-5 max-w-3xl text-4xl font-black leading-[1.05] tracking-tight text-foreground md:text-5xl xl:text-6xl">
                 Học cùng <span className="text-brand-700">AI companion</span>
               </h1>
               <p className="mt-4 max-w-2xl text-lg leading-8 text-muted-foreground">
@@ -156,7 +156,7 @@ export function DashboardPage() {
         </section>
       </div>
 
-      <aside className="space-y-6">
+      <aside className="min-w-0 space-y-6 2xl:w-[340px]">
         <Card className="p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
