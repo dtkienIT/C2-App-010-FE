@@ -1,4 +1,4 @@
-type BuddyVariant = "miu" | "lumi" | "owly" | "nova" | "ivy" | "tree";
+type BuddyVariant = "miu" | "lumi" | "owly" | "nova" | "ivy" | "tree" | "chasam";
 
 type BuddyAvatarProps = {
   emoji?: string;
@@ -17,6 +17,7 @@ const sizeClass = {
 };
 
 const tones: Record<BuddyVariant, { primary: string; secondary: string; accent: string; blush: string }> = {
+  chasam: { primary: "#FFD1E6", secondary: "#FFF3F8", accent: "#EC4899", blush: "#FB7185" },
   miu: { primary: "#F8C7A7", secondary: "#FFF7ED", accent: "#14B8A6", blush: "#FB7185" },
   lumi: { primary: "#B9E6FF", secondary: "#EEF8FF", accent: "#2563EB", blush: "#67E8F9" },
   owly: { primary: "#F6C76D", secondary: "#FFF7DB", accent: "#92400E", blush: "#F97316" },
@@ -42,7 +43,7 @@ export function BuddyAvatar({ emoji, fallbackImage, size = "md", variant, classN
 
   if (fallbackImage) {
     return (
-      <div className={`overflow-hidden rounded-[1.75rem] border border-border/80 bg-card shadow-sm ${sizeClass[size]} ${className}`}>
+      <div className={`overflow-hidden rounded-[1.75rem] border border-white/80 bg-white shadow-sm ${sizeClass[size]} ${className}`}>
         <img alt={`${resolvedVariant} buddy`} className="h-full w-full object-cover object-top" src={fallbackImage} />
       </div>
     );

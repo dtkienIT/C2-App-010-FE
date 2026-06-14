@@ -33,6 +33,24 @@ export const user = {
 
 export const buddies = [
   {
+    id: "chasam",
+    name: "Chasam",
+    role: "Mascot mochi h?ng",
+    type: "Mascot mochi h?ng",
+    emoji: "??",
+    gradient: "from-pink-50 via-rose-50 to-orange-50",
+    description: "Buddy ng?t ng?o, h?p ?? l?m linh v?t ch?nh trong Buddy Room v?i c?c skin qu? t?ng d? thay ??i.",
+    personality: "D? th??ng, m?m m?i, c? c?m gi?c nh? m?t nh?n v?t g?i ?m nh? lu?n ? ?? ?? c? v? b?n h?c t?ng ch?t m?t.",
+    fallbackImage: "/buddies/chasam/icon.png",
+    accent: "rose",
+    mood: "happy",
+    level: 9,
+    xp: 590,
+    nextLevelXp: 1000,
+    skills: ["??ng vi?n nh? nh?ng", "Bi?n ph?ng h?c th?nh cozy corner", "M? kh?a skin theo ph?n th??ng"],
+    tags: ["Cute", "Reward", "Room", "Daily"],
+  },
+  {
     id: "lumi",
     name: "Lumi",
     role: "Robot AI Buddy",
@@ -143,7 +161,7 @@ export const buddies = [
 ];
 
 export const currentBuddy = {
-  ...buddies[1],
+  ...(buddies.find((buddy) => buddy.id === "chasam") ?? buddies[0]),
   level: 8,
   xp: 720,
   nextLevelXp: 1200,
@@ -214,7 +232,7 @@ export const quests = [
 export const quizzes = [
   {
     id: "grammar-01",
-    title: "Grammar Quiz",
+    title: "Bài kiểm tra Grammar",
     topic: "Present Perfect",
     rewardXp: 20,
     rewardCoin: 5,
@@ -232,8 +250,8 @@ export const quizzes = [
       },
       {
         id: 2,
-        question: "What does 'already' usually express?",
-        options: ["A future plan", "A completed action", "A habit", "A comparison"],
+        question: "Từ 'already' thường diễn tả điều gì?",
+        options: ["Một kế hoạch tương lai", "Một hành động đã hoàn thành", "Một thói quen", "Một sự so sánh"],
         correctIndex: 1,
       },
       {
@@ -261,12 +279,13 @@ export const progress = {
 };
 
 export const rewards = [
-  { id: "starter", name: "Starter Scholar", type: "badge", icon: Medal, unlocked: true },
-  { id: "streak", name: "7-Day Focus", type: "badge", icon: Flame, unlocked: true },
-  { id: "grammar", name: "Grammar Explorer", type: "badge", icon: Award, unlocked: false },
-  { id: "halo", name: "Focus Halo", type: "item", icon: Sparkles, price: 120, unlocked: false },
-  { id: "night", name: "Calm Night Theme", type: "theme", icon: MoonStar, price: 220, unlocked: false },
-  { id: "tree", name: "Groot Seed", type: "item", icon: TreePine, price: 180, unlocked: true },
+  { id: "starter", name: "Starter Scholar", type: "badge", icon: Medal, unlocked: true, description: "Danh hieu khoi dong cho nhung nguoi bat dau giu nhip hoc deu." },
+  { id: "streak", name: "7-Day Focus", type: "badge", icon: Flame, unlocked: true, description: "Danh dau chuoi hoc lien tiep va kha nang giu guong focus." },
+  { id: "grammar", name: "Grammar Explorer", type: "badge", icon: Award, unlocked: false, description: "Mo khoa khi hoan thanh cac quiz ngu phap cot moc." },
+  { id: "chasam-maneki", name: "Chasam Maneki Skin", type: "item", icon: Sparkles, price: 180, unlocked: true, previewImage: "/buddies/skinchasam/140maneki/icon.png", description: "Skin reward cho Chasam, dung de doi giao dien buddy ngay trong room." },
+  { id: "halo", name: "Focus Halo", type: "item", icon: Sparkles, price: 120, unlocked: false, description: "Item hieu ung du kien dung cho phong buddy va scene focus." },
+  { id: "night", name: "Calm Night Theme", type: "theme", icon: MoonStar, price: 220, unlocked: false, description: "Theme room du kien de mo rong he thong background ve sau." },
+  { id: "tree", name: "Groot Seed", type: "item", icon: TreePine, price: 180, unlocked: true, description: "Vat pham progression mau xanh cho room progression sau nay." },
 ];
 
 export const companionModels = [
@@ -501,6 +520,7 @@ export const statsCards = [
   { label: "Level hiện tại", value: `Lv. ${user.level}`, icon: Zap, tone: "violet" },
   { label: "Tổng XP", value: user.totalXp.toLocaleString("vi-VN"), icon: Sparkles, tone: "blue" },
   { label: "Streak", value: `${user.streak} ngày`, icon: Flame, tone: "orange" },
+  { label: "Nhiệm vụ hôm nay", value: `${user.todayMissions}`, icon: Target, tone: "green" },
 ];
 
 export const aiSuggestion = {
