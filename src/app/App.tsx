@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { AppLayout } from "../layouts/AppLayout";
 import { AuthPage } from "../pages/AuthPage";
@@ -15,6 +15,7 @@ import { RewardsPage } from "../pages/RewardsPage";
 
 function ProtectedApp() {
   const { mode, isLoading } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -28,7 +29,7 @@ function ProtectedApp() {
   }
 
   if (mode === "signed_out") {
-    return <Navigate replace to="/auth" />;
+    return <Navigate replace state={{ from: `${location.pathname}${location.search}${location.hash}` }} to="/auth" />;
   }
 
   return <AppLayout />;

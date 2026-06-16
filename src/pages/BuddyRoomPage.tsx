@@ -1,6 +1,7 @@
-import { ArrowRight, Palette, Sparkles, X } from "lucide-react";
+import { ArrowRight, Palette, PlayCircle, Sparkles, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 import { BuddyNewsfeedPanel } from "../components/buddy/BuddyNewsfeedPanel";
 import { Buddy3DStage } from "../components/buddy/Buddy3DStage";
 import { BuddyRoom } from "../components/buddy/BuddyRoom";
@@ -10,6 +11,8 @@ import { useActiveBuddy } from "../components/buddy/useActiveBuddy";
 import { BuddyRoomBackgroundId, useBuddyRoomPreferences } from "../components/buddy/useBuddyRoomPreferences";
 import { useCompanionModelStore } from "../components/buddy/useCompanionModelStore";
 import { useOwner2BuddyRoomExperience } from "../components/buddy/useOwner2BuddyRoomExperience";
+import { NotificationPermissionCard } from "../features/notifications/NotificationPermissionCard";
+import { StudyReminderSettings } from "../features/notifications/StudyReminderSettings";
 
 const chasamSkins = [
   {
@@ -134,6 +137,8 @@ const roomThemeLabels: Record<BuddyRoomBackgroundId, { chip: string; label: stri
 };
 
 export function BuddyRoomPage() {
+  const { mode } = useAuth();
+  const [searchParams] = useSearchParams();
   const { activeBuddy } = useActiveBuddy();
   const {
     activeEquippedModel,
@@ -153,9 +158,13 @@ export function BuddyRoomPage() {
     focus: clampStat(activeBuddy.focus ?? 68),
     motivation: clampStat(activeBuddy.motivation ?? 84),
   });
+  const [focusSessionStarted, setFocusSessionStarted] = useState(false);
 
   const activeChasamSkin = chasamSkins.find((skin) => skin.id === preferences.chasamSkinId) ?? chasamSkins[0];
   const derived2DStateKey = useMemo(() => resolveDemoStateKey(demoStats), [demoStats]);
+  const isStudyReminderFocus =
+    searchParams.get("mode") === "focus" && searchParams.get("source") === "study_reminder";
+  const sourceReminderId = searchParams.get("reminderId") ?? "";
 
   const owner2Experience = useOwner2BuddyRoomExperience({
     activeBuddyId: activeBuddy.id,
@@ -205,8 +214,32 @@ export function BuddyRoomPage() {
     return () => window.clearTimeout(timeoutId);
   }, [derived2DStateKey, isChasam2D, motionNonce]);
 
+  useEffect(() => {
+    setFocusSessionStarted(false);
+  }, [sourceReminderId]);
+
   return (
     <div className="mx-auto max-w-screen-2xl space-y-6">
+      {isStudyReminderFocus ? (
+        <section className="rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4 text-foreground shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-primary">Focus Mode</p>
+              <h2 className="mt-1 text-xl font-black">
+                {focusSessionStarted ? "Đang tập trung cùng Buddy" : "Đến giờ học rồi"}
+              </h2>
+              <p className="mt-1 text-sm font-semibold leading-6 text-muted-foreground">
+                Reminder {sourceReminderId ? `#${sourceReminderId.slice(0, 8)}` : "hôm nay"} đã đưa bạn về phòng học.
+              </p>
+            </div>
+            <button className="primary-button rounded-xl px-4 py-2 text-sm" onClick={() => setFocusSessionStarted(true)} type="button">
+              <PlayCircle size={16} />
+              {focusSessionStarted ? "Đang học" : "Bắt đầu 25 phút"}
+            </button>
+          </div>
+        </section>
+      ) : null}
+
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start">
         <section className="min-w-0 overflow-hidden rounded-[2rem] border border-border/80 bg-card/72 p-4 text-card-foreground shadow-[0_28px_90px_rgba(15,23,42,0.12)] backdrop-blur md:p-6">
           <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
@@ -409,12 +442,31 @@ export function BuddyRoomPage() {
           )}
         </section>
 
-        <BuddyNewsfeedPanel
-          feedItems={owner2Experience.feedItems}
-          feedState={owner2Experience.feedState}
-          maxItems={owner2Experience.newsfeedLayout.maxItems}
-          note={owner2Experience.newsfeedLayout.note}
-        />
+        <aside className="space-y-4">
+          {mode === "authenticated" ? (
+            <>
+              <NotificationPermissionCard />
+              <StudyReminderSettings />
+            </>
+          ) : (
+            <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Lịch học</p>
+              <p className="mt-2 text-sm font-semibold leading-6 text-muted-foreground">
+                Đăng nhập để bật nhắc lịch học trên trình duyệt này.
+              </p>
+              <Link className="secondary-button mt-3 rounded-xl px-4 py-2 text-sm" to="/auth">
+                Đăng nhập
+              </Link>
+            </section>
+          )}
+
+          <BuddyNewsfeedPanel
+            feedItems={owner2Experience.feedItems}
+            feedState={owner2Experience.feedState}
+            maxItems={owner2Experience.newsfeedLayout.maxItems}
+            note={owner2Experience.newsfeedLayout.note}
+          />
+        </aside>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import { isAxiosError } from "axios";
 import { ArrowRight, LockKeyhole, Mail, ShieldCheck, Sparkles, Ticket, UserRound } from "lucide-react";
 import { FormEvent, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { StudyBuddyLogo } from "../components/StudyBuddyLogo";
 import { ThemeToggle } from "../components/ThemeToggle";
@@ -22,9 +22,15 @@ const authTabs: { id: AuthMode; label: string }[] = [
   { id: "register", label: "Tạo tài khoản" },
 ];
 
+function getRedirectTarget(state: unknown) {
+  const from = (state as { from?: unknown } | null)?.from;
+  return typeof from === "string" && from.startsWith("/") ? from : "/dashboard";
+}
+
 export function AuthPage() {
   const { login, register, continueAsGuest, mode } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,7 +38,7 @@ export function AuthPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (mode !== "signed_out") {
-    return <Navigate replace to="/dashboard" />;
+    return <Navigate replace to={getRedirectTarget(location.state)} />;
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -46,7 +52,7 @@ export function AuthPage() {
       } else {
         await register(email, password);
       }
-      navigate("/dashboard", { replace: true });
+      navigate(getRedirectTarget(location.state), { replace: true });
     } catch (nextError) {
       setError(getErrorMessage(nextError));
     } finally {
@@ -56,7 +62,7 @@ export function AuthPage() {
 
   function handleGuest() {
     continueAsGuest();
-    navigate("/dashboard", { replace: true });
+    navigate(getRedirectTarget(location.state), { replace: true });
   }
 
   return (
