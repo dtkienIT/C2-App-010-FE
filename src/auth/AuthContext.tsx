@@ -1,7 +1,7 @@
 import type { Session, User } from "@supabase/supabase-js";
 import { createContext, startTransition, useContext, useEffect, useState, type ReactNode } from "react";
 import { AUTH_TOKEN_KEY, AUTH_UNAUTHORIZED_EVENT } from "../services/apiClient";
-import { getMeWithApi, loginWithApi, registerWithApi } from "../services/authApi";
+import { getMeWithApi, loginWithApi, registerWithApi, verifyEmailWithApi, type RegisterResponse } from "../services/authApi";
 import { isSupabaseConfigured, supabase } from "../services/supabaseClient";
 
 type Role = "student" | "teacher" | "admin" | "guest";
@@ -37,7 +37,8 @@ type AuthContextValue = {
   authProvider: AuthProviderMode;
   isSupabaseReady: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<RegisterResponse | void>;
+  verifyEmail: (verificationSessionId: string, otp: string) => Promise<void>;
   continueAsGuest: () => void;
   logout: () => Promise<void>;
 };
@@ -325,7 +326,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error("Tài khoản đã được tạo. Hãy xác nhận email trước khi đăng nhập nếu Supabase yêu cầu.");
     }
 
-    const data = await registerWithApi(email, password);
+    return registerWithApi(email, password);
+  }
+
+  async function verifyEmail(verificationSessionId: string, otp: string) {
+    const data = await verifyEmailWithApi(verificationSessionId, otp);
     const nextUser = toBackendAuthUser(data.user);
     localStorage.setItem(AUTH_TOKEN_KEY, data.access_token);
     setStoredUser(nextUser);
@@ -361,6 +366,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isSupabaseReady: isSupabaseConfigured,
         login,
         register,
+        verifyEmail,
         continueAsGuest,
         logout,
       }}

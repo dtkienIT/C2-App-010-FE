@@ -12,6 +12,7 @@ import { ProgressPage } from "../pages/ProgressPage";
 import { QuizPage } from "../pages/QuizPage";
 import { QuizResultPage } from "../pages/QuizResultPage";
 import { RewardsPage } from "../pages/RewardsPage";
+import { VerifyEmailPage } from "../pages/VerifyEmailPage";
 
 function ProtectedApp() {
   const { mode, isLoading } = useAuth();
@@ -39,6 +40,7 @@ export function App() {
   return (
     <Routes>
       <Route path="/auth" element={<AuthPage />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route element={<ProtectedApp />}>
         <Route index element={<Navigate replace to="/dashboard" />} />
         <Route path="/dashboard" element={<DashboardPage />} />

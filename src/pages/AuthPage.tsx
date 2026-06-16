@@ -5,11 +5,14 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { StudyBuddyLogo } from "../components/StudyBuddyLogo";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { saveVerificationSession } from "./VerifyEmailPage";
 
 type AuthMode = "login" | "register";
 
 function getErrorMessage(error: unknown) {
   if (isAxiosError(error)) {
+    const message = error.response?.data?.message;
+    if (typeof message === "string") return message;
     const detail = error.response?.data?.detail;
     if (typeof detail === "string") return detail;
   }
@@ -50,10 +53,23 @@ export function AuthPage() {
       if (authMode === "login") {
         await login(email, password);
       } else {
-        await register(email, password);
+        const result = await register(email, password);
+        if (result && result.verification_required) {
+          saveVerificationSession({ email: result.email, verificationSessionId: result.verification_session_id });
+          navigate("/verify-email", { replace: true });
+          return;
+        }
       }
       navigate(getRedirectTarget(location.state), { replace: true });
     } catch (nextError) {
+      if (isAxiosError(nextError)) {
+        const details = nextError.response?.data?.details;
+        if (details?.code === "EMAIL_NOT_VERIFIED" && typeof details.verification_session_id === "string") {
+          saveVerificationSession({ email: details.email ?? email, verificationSessionId: details.verification_session_id });
+          navigate("/verify-email", { replace: true });
+          return;
+        }
+      }
       setError(getErrorMessage(nextError));
     } finally {
       setIsSubmitting(false);
