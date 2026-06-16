@@ -17,6 +17,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 import { BuddyBreakModePanel } from "../components/buddy/BuddyBreakModePanel";
 import { BuddyNewsfeedPanel } from "../components/buddy/BuddyNewsfeedPanel";
 import { Buddy3DStage } from "../components/buddy/Buddy3DStage";
@@ -31,6 +32,8 @@ import { useActiveBuddy } from "../components/buddy/useActiveBuddy";
 import { BuddyRoomBackgroundId, useBuddyRoomPreferences } from "../components/buddy/useBuddyRoomPreferences";
 import { useCompanionModelStore } from "../components/buddy/useCompanionModelStore";
 import { useOwner2BuddyRoomExperience } from "../components/buddy/useOwner2BuddyRoomExperience";
+import { NotificationPermissionCard } from "../features/notifications/NotificationPermissionCard";
+import { StudyReminderSettings } from "../features/notifications/StudyReminderSettings";
 import { applyBuddyReward } from "../services/buddiesApi";
 import type { QuizAttempt } from "../services/types";
 
@@ -280,6 +283,7 @@ const roomThemeLabels: Record<BuddyRoomBackgroundId, { chip: string; label: stri
 export function BuddyRoomPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { mode } = useAuth();
   const { activeBuddy, refreshBuddyData } = useActiveBuddy();
   const {
     activeEquippedModel,
@@ -950,6 +954,23 @@ export function BuddyRoomPage() {
         </section>
 
         <div className="space-y-4">
+          {mode === "authenticated" ? (
+            <>
+              <NotificationPermissionCard />
+              <StudyReminderSettings />
+            </>
+          ) : (
+            <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Lịch học</p>
+              <p className="mt-2 text-sm font-semibold leading-6 text-muted-foreground">
+                Đăng nhập để bật nhắc lịch học trên trình duyệt này.
+              </p>
+              <Link className="secondary-button mt-3 rounded-xl px-4 py-2 text-sm" to="/auth">
+                Đăng nhập
+              </Link>
+            </section>
+          )}
+
           {isPomodoroBreakMode ? (
             <BuddyBreakModePanel
               onBreakComplete={returnToQuiz}
