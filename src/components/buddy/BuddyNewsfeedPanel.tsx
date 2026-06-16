@@ -8,6 +8,7 @@ type BuddyNewsfeedPanelProps = {
   feedState: BuddyRoomFeedState;
   maxItems: number;
   note: string;
+  onQuestAction?: (item: BuddyRoomFeedItem) => void;
 };
 
 const NEWSFEED_COLLAPSED_KEY = "study-buddy-newsfeed-collapsed";
@@ -80,7 +81,7 @@ const slideVariants = {
   }),
 } as const;
 
-export function BuddyNewsfeedPanel({ feedItems, feedState, maxItems, note }: BuddyNewsfeedPanelProps) {
+export function BuddyNewsfeedPanel({ feedItems, feedState, maxItems, note, onQuestAction }: BuddyNewsfeedPanelProps) {
   const visibleItems = useMemo(() => feedItems.slice(0, Math.max(1, maxItems || 1)), [feedItems, maxItems]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
@@ -272,6 +273,11 @@ export function BuddyNewsfeedPanel({ feedItems, feedState, maxItems, note }: Bud
                   <div className="border-t border-white/10 bg-black/25 px-4 py-3 backdrop-blur-xl">
                     <button
                       className="flex w-full min-w-0 items-center justify-between rounded-2xl bg-white px-3 py-3 text-left text-slate-950 transition hover:bg-white/90"
+                      onClick={() => {
+                        if (activeItem) {
+                          onQuestAction?.(activeItem);
+                        }
+                      }}
                       type="button"
                     >
                       <span className="inline-flex items-center gap-2 truncate text-sm font-black">

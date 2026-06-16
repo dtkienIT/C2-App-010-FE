@@ -23,6 +23,7 @@ import { createPortal } from "react-dom";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { BuddyAvatar } from "../components/BuddyAvatar";
+import { readActiveQuizPomodoroSession } from "../components/buddy/quizPomodoroBridge";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { useActiveBuddy } from "../components/buddy/useActiveBuddy";
 import { StudyBuddyLogo } from "../components/StudyBuddyLogo";
@@ -33,7 +34,7 @@ const navItems = [
   { to: "/dashboard", label: "Tổng quan", icon: Home },
   { to: "/missions", label: "Nhiệm vụ", icon: CheckSquare },
   { to: "/quiz", label: "Quiz", icon: Target },
-  { to: "/buddy-room", label: "AI Mentor", icon: Bot },
+  { to: "/buddy-room", label: "Buddy Room", icon: Bot },
   { to: "/progress", label: "Thống kê", icon: BarChart3 },
   { to: "/achievements", label: "Thành tích", icon: Award },
   { to: "/buddy-3d", label: "Cửa hàng", icon: ShoppingBag },
@@ -106,9 +107,25 @@ export function AppLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isGuestHeaderExpanded, setIsGuestHeaderExpanded] = useState(false);
   const [stats, setStats] = useState<ApiUser | null>(null);
+  const [activeQuizSession, setActiveQuizSession] = useState(() => readActiveQuizPomodoroSession());
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const syncQuizSession = () => {
+      setActiveQuizSession(readActiveQuizPomodoroSession());
+    };
+
+    syncQuizSession();
+    window.addEventListener("storage", syncQuizSession);
+    window.addEventListener("focus", syncQuizSession);
+
+    return () => {
+      window.removeEventListener("storage", syncQuizSession);
+      window.removeEventListener("focus", syncQuizSession);
+    };
   }, [location.pathname]);
 
   useEffect(() => {
@@ -149,26 +166,30 @@ export function AppLayout() {
     coins: stats?.coins ?? 0,
     streak: stats?.streak ?? 0,
   };
+  const isQuizNavigationLocked = Boolean(activeQuizSession) && !activeQuizSession?.isOnBreak;
 
   function renderNavLink(item: (typeof navItems)[number], mobile = false) {
     const Icon = item.icon;
+    const isLockedTarget = isQuizNavigationLocked && (item.to === "/buddy-room" || item.to === "/buddy-3d");
 
     return (
       <NavLink
+        aria-disabled={isLockedTarget}
         className={({ isActive }) =>
           mobile
             ? `group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-extrabold transition ${
                 isActive ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground hover:bg-card hover:text-foreground"
-              }`
+              } ${isLockedTarget ? "pointer-events-none opacity-45" : ""}`
             : `group flex h-11 items-center gap-3 rounded-xl px-3 text-[14px] font-extrabold transition ${
                 isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`
+              } ${isLockedTarget ? "pointer-events-none opacity-45" : ""}`
         }
         key={item.to}
         to={item.to}
       >
         <Icon className="shrink-0" size={20} strokeWidth={2.25} />
         <span className="truncate">{item.label}</span>
+        {isLockedTarget ? <span className="ml-auto text-[10px] font-black uppercase tracking-[0.12em]">Quiz</span> : null}
       </NavLink>
     );
   }

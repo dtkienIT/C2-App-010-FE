@@ -23,6 +23,7 @@ export function BuddyRoom({
   backgroundImage = "",
   buddy,
   equippedModel,
+  externalAction = null,
   showStatusPanel = true,
   vrmUrl = "/vrm-models/vita.vrm",
 }) {
@@ -118,6 +119,23 @@ export function BuddyRoom({
     setMood("levelUp");
     setCurrentAction(ENTRANCE_ACTION);
   }, [isBuddy3DActive, isModelReady]);
+
+  useEffect(() => {
+    if (!externalAction?.nonce || !externalAction.action || !isBuddy3DActive) {
+      return;
+    }
+
+    const nextMood = externalAction.mood ?? DEFAULT_ROOM_MOOD;
+    markUserInteraction();
+
+    if (actionLockRef.current || !isModelReady) {
+      pendingActionRef.current = { action: externalAction.action, mood: nextMood };
+      return;
+    }
+
+    pendingActionRef.current = null;
+    runAction(externalAction.action, nextMood, { shouldLock: true, source: "external" });
+  }, [externalAction, isBuddy3DActive, isModelReady]);
 
   const runAction = (nextAction, nextMood, options = {}) => {
     const { shouldLock = !NON_LOCKING_ACTIONS.has(nextAction), source = "user" } = options;

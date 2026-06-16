@@ -16,6 +16,7 @@ type BuddyStatusPanelProps = {
     type: string;
     xp: number;
   };
+  displayName?: string;
   mood: BuddyMood;
 };
 
@@ -28,14 +29,14 @@ const accentPanel: Record<BuddyAccent, string> = {
   violet: "from-violet-50 to-fuchsia-50 text-violet-700",
 };
 
-export function BuddyStatusPanel({ buddy, mood }: BuddyStatusPanelProps) {
+export function BuddyStatusPanel({ buddy, displayName, mood }: BuddyStatusPanelProps) {
   const moodMeta = buddyMoodMeta[mood];
   const MoodIcon = moodMeta.icon;
   const statusRows = [
     { icon: Sparkles, label: "XP", max: buddy.nextLevelXp, value: buddy.xp },
     { icon: Zap, label: "Năng lượng", max: 100, value: buddy.energy },
     { icon: Target, label: "Tập trung", max: 100, value: buddy.focus },
-    { icon: Flame, label: "Động lực", max: 100, value: buddy.motivation },
+    { icon: Flame, label: "Joy", max: 100, value: buddy.motivation },
   ];
 
   return (
@@ -46,7 +47,7 @@ export function BuddyStatusPanel({ buddy, mood }: BuddyStatusPanelProps) {
             <Bot size={23} />
           </div>
           <div className="min-w-0">
-            <h2 className="truncate text-2xl font-black text-slate-950">{buddy.name}</h2>
+            <h2 className="truncate text-2xl font-black text-slate-950">{displayName ?? buddy.name}</h2>
             <p className="text-sm font-bold text-slate-500">{buddy.type}</p>
           </div>
         </div>
@@ -68,7 +69,7 @@ export function BuddyStatusPanel({ buddy, mood }: BuddyStatusPanelProps) {
       </section>
 
       <section className="rounded-[1.75rem] border border-white/85 bg-white/90 p-5 shadow-soft">
-        <h3 className="text-lg font-black text-slate-950">Trạng thái học tập</h3>
+        <h3 className="text-lg font-black text-slate-950">Trạng thái Buddy</h3>
         <div className="mt-4 space-y-4">
           {statusRows.slice(1).map(({ icon: Icon, label, max, value }) => (
             <div key={label}>

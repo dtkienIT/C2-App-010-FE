@@ -54,6 +54,28 @@ export function useCompanionModelStore() {
   const [apiModels, setApiModels] = useState<CompanionModel[]>([]);
   const [apiBackgrounds, setApiBackgrounds] = useState<RoomBackground[]>([]);
 
+  const refreshStore = useCallback(() => {
+    if (typeof window === "undefined" || !window.localStorage.getItem(AUTH_TOKEN_KEY)) {
+      return Promise.resolve();
+    }
+
+    return Promise.all([getBuddy3DModels(), getRoomBackgrounds(), getBuddy3DSettings()])
+      .then(([models, backgrounds, settings]) => {
+        setApiModels(models);
+        setApiBackgrounds(backgrounds);
+        if (!hasLocalModelOverrideRef.current && !hasPersistedLocalModelRef.current) {
+          setEquippedModelId((settings.equipped_model_id as CompanionModelId | null) ?? null);
+        }
+        if (!hasLocalModelOverrideRef.current && !hasPersistedLocalEnabledRef.current) {
+          setIsBuddy3DEnabled(Boolean(settings.buddy_3d_enabled));
+        }
+        if (!hasLocalBackgroundOverrideRef.current) {
+          setSelectedBackgroundId(settings.room_background_id ?? backgrounds[0]?.id ?? "");
+        }
+      })
+      .catch(() => undefined);
+  }, []);
+
   const mergedCompanionModels = useMemo(() => {
     if (!apiModels.length) {
       return companionModels;
@@ -157,7 +179,7 @@ export function useCompanionModelStore() {
     setIsBuddy3DEnabled(true);
     if (typeof window !== "undefined" && window.localStorage.getItem(AUTH_TOKEN_KEY)) {
       void equipBuddy3DModel(id).catch((error) => {
-        console.warn("[Buddy3D] Backend chưa lưu được equipped model, giữ local selection", {
+        console.warn("[Buddy3D] Backend chÆ°a lÆ°u Ä‘Æ°á»£c equipped model, giá»¯ local selection", {
           modelId: id,
           status: error?.response?.status,
         });
@@ -203,6 +225,7 @@ export function useCompanionModelStore() {
     equipModel,
     isBuddy3DEnabled,
     roomBackgrounds: apiBackgrounds.length ? apiBackgrounds : roomBackgrounds,
+    refreshStore,
     selectBackground,
     selectedBackground,
     selectedBackgroundId,

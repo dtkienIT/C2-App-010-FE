@@ -19,6 +19,7 @@ export function QuizResultPage() {
       setError("Thiếu attemptId. Hãy làm quiz lại.");
       return;
     }
+
     let cancelled = false;
     getQuizAttempt(attemptId)
       .then((data) => {
@@ -27,6 +28,7 @@ export function QuizResultPage() {
       .catch(() => {
         if (!cancelled) setError("Không tải được kết quả quiz.");
       });
+
     return () => {
       cancelled = true;
     };
@@ -109,7 +111,7 @@ export function QuizResultPage() {
             <Sparkles size={16} />
             Buddy rất tự hào về bạn
           </div>
-          <p className="mt-4 text-sm leading-6 text-muted-foreground">Tiếp tục giữ nhịp học này để buddy phát triển nhanh hơn nhé.</p>
+          <p className="mt-4 text-sm leading-6 text-muted-foreground">Giữ nhịp học này nhé. Khi muốn nghỉ giữa quiz, Pomodoro break sẽ đưa bạn sang Buddy Room đúng flow mới.</p>
         </Card>
       </div>
     </div>

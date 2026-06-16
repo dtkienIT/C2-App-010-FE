@@ -54,6 +54,23 @@ export type Buddy = {
   quote: string;
   skills: string[];
   tags: string[];
+  totalXp?: number;
+};
+
+export type BuddyStatsResponse = {
+  activeBuddy: Buddy;
+  gamification: {
+    levels: { baseXp: number; perLevelStep: number; formula: string };
+    streaks: { sameDay: string; nextDay: string; missedDay: string };
+    miniQuizRewards: Record<string, { joy: number; energy: number; focus: number }>;
+  };
+  userStats: Pick<ApiUser, "level" | "xp" | "nextLevelXp" | "totalXp" | "streak" | "coins">;
+};
+
+export type BuddyRewardResponse = BuddyStatsResponse & {
+  buddyProgress: { level: number; totalXp: number };
+  buddyStats: { joy: number; energy: number; focus: number; mood: string };
+  reward: { joy: number; energy: number; focus: number; buddyXp: number; message: string; source: string };
 };
 
 export type DashboardData = {
@@ -171,4 +188,5 @@ export type Buddy3DSettings = {
   activeBuddy: Buddy;
   equippedModel: CompanionModel | null;
   selectedBackground: RoomBackground | null;
+  userStats?: Pick<ApiUser, "coins" | "level" | "xp" | "nextLevelXp" | "totalXp">;
 };

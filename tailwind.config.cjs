@@ -4,6 +4,9 @@ module.exports = {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"Be Vietnam Pro"', "ui-sans-serif", "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
+      },
       colors: {
         accent: "hsl(var(--accent) / <alpha-value>)",
         background: "hsl(var(--background) / <alpha-value>)",

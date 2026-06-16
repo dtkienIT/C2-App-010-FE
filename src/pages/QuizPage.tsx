@@ -1,8 +1,14 @@
 import { ArrowRight, CheckCircle2, Clock3, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { BuddyAvatar } from "../components/BuddyAvatar";
+import { QuizPomodoroEntry } from "../components/buddy/QuizPomodoroEntry";
+import {
+  clearActiveQuizPomodoroSession,
+  readActiveQuizPomodoroSession,
+  writeActiveQuizPomodoroSession,
+} from "../components/buddy/quizPomodoroBridge";
 import { useActiveBuddy } from "../components/buddy/useActiveBuddy";
 import { Card } from "../components/Card";
 import { generateQuiz, submitGeneratedQuizAttempt } from "../services/quizzesApi";
@@ -10,28 +16,72 @@ import type { Quiz } from "../services/types";
 
 export function QuizPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { mode } = useAuth();
   const { activeBuddy } = useActiveBuddy();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
+  const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (mode === "guest") return;
+
+    const storedSession = readActiveQuizPomodoroSession();
+    if (storedSession?.quiz) {
+      setQuiz(storedSession.quiz);
+      setSelectedAnswers(storedSession.selectedAnswers);
+      setActiveQuestionIndex(storedSession.currentQuestionIndex);
+      writeActiveQuizPomodoroSession({
+        ...storedSession,
+        isOnBreak: false,
+        updatedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
     let cancelled = false;
     generateQuiz({ count: 10, difficulty: "beginner", questionTypes: ["meaning", "reverse", "pronunciation", "type", "fill_blank"] })
       .then((data) => {
-        if (!cancelled) setQuiz(data);
+        if (cancelled) return;
+        setQuiz(data);
+        setSelectedAnswers({});
+        setActiveQuestionIndex(0);
       })
-      .catch((err) => {
-        void err;
+      .catch(() => {
         if (!cancelled) setError("Không tải được quiz. Hãy thử lại sau.");
       });
+
     return () => {
       cancelled = true;
     };
   }, [mode]);
+
+  useEffect(() => {
+    if (!quiz) return;
+    writeActiveQuizPomodoroSession({
+      currentQuestionIndex: activeQuestionIndex,
+      isOnBreak: false,
+      quiz,
+      returnTo: "/quiz",
+      selectedAnswers,
+      updatedAt: new Date().toISOString(),
+    });
+  }, [activeQuestionIndex, quiz, selectedAnswers]);
+
+  useEffect(() => {
+    const state = location.state as { restoreQuizSession?: boolean } | null;
+    if (!state?.restoreQuizSession) return;
+
+    const storedSession = readActiveQuizPomodoroSession();
+    if (!storedSession) return;
+
+    setQuiz(storedSession.quiz);
+    setSelectedAnswers(storedSession.selectedAnswers);
+    setActiveQuestionIndex(storedSession.currentQuestionIndex);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
 
   const allAnswered = useMemo(() => {
     const questions = quiz?.questions ?? [];
@@ -52,12 +102,33 @@ export function QuizPage() {
         quiz.quizId ?? quiz.id,
         Object.entries(selectedAnswers).map(([questionId, selectedOptionId]) => ({ questionId, selectedOptionId })),
       );
+      clearActiveQuizPomodoroSession();
       navigate(`/quiz-result?attemptId=${attempt.attemptId}`);
     } catch {
       setError("Không nộp được quiz. Hãy thử lại sau.");
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  function handleStartBreak() {
+    if (!quiz) return;
+
+    writeActiveQuizPomodoroSession({
+      currentQuestionIndex: activeQuestionIndex,
+      isOnBreak: true,
+      quiz,
+      returnTo: "/quiz",
+      selectedAnswers,
+      updatedAt: new Date().toISOString(),
+    });
+
+    navigate("/buddy-room", {
+      state: {
+        mode: "pomodoro-break",
+        returnTo: "/quiz",
+      },
+    });
   }
 
   if (mode === "guest") {
@@ -85,7 +156,12 @@ export function QuizPage() {
 
         <div className="mt-8 space-y-5">
           {(quiz.questions ?? []).map((question, index) => (
-            <div className="soft-panel rounded-[1.5rem] p-5" key={question.id}>
+            <div
+              className={`soft-panel rounded-[1.5rem] p-5 transition ${
+                activeQuestionIndex === index ? "ring-2 ring-primary/35" : ""
+              }`}
+              key={question.id}
+            >
               <div className="flex items-start justify-between gap-4">
                 <h2 className="text-lg font-black text-foreground">
                   Câu {index + 1}. {question.question}
@@ -103,7 +179,10 @@ export function QuizPage() {
                           : "border-border bg-card/88 text-foreground hover:border-primary/40 hover:bg-muted hover:text-foreground"
                       }`}
                       key={option.id}
-                      onClick={() => setSelectedAnswers((current) => ({ ...current, [question.id]: option.id }))}
+                      onClick={() => {
+                        setActiveQuestionIndex(index);
+                        setSelectedAnswers((current) => ({ ...current, [question.id]: option.id }));
+                      }}
                       type="button"
                     >
                       {option.text ?? option.optionText}
@@ -134,6 +213,8 @@ export function QuizPage() {
           <h2 className="mt-4 text-xl font-black text-foreground">{activeBuddy.name}</h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">{activeBuddy.personality}</p>
         </Card>
+
+        <QuizPomodoroEntry currentQuestionIndex={activeQuestionIndex} onStartBreak={handleStartBreak} />
 
         <Card className="p-6">
           <div className="flex items-center gap-3">

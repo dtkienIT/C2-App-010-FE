@@ -26,3 +26,13 @@ export async function selectRoomBackground(backgroundId: string) {
   return response.data;
 }
 
+export async function purchaseBuddy3DModel(modelId: string) {
+  const response = await apiClient.post<Buddy3DSettings>("/buddy-3d/purchase-model", { modelId });
+  return response.data;
+}
+
+export async function purchaseRoomBackground(backgroundId: string) {
+  const response = await apiClient.post<Buddy3DSettings>("/buddy-3d/purchase-background", { backgroundId });
+  return response.data;
+}
+

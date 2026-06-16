@@ -16,6 +16,23 @@ export function useActiveBuddy() {
   const [apiBuddies, setApiBuddies] = useState<ApiBuddy[]>([]);
   const [apiActiveBuddy, setApiActiveBuddy] = useState<ApiBuddy | null>(null);
 
+  const refreshBuddyData = useCallback(() => {
+    if (typeof window === "undefined" || !window.localStorage.getItem(AUTH_TOKEN_KEY)) {
+      return Promise.resolve();
+    }
+
+    return Promise.all([getBuddies(), getActiveBuddy()])
+      .then(([nextBuddies, nextActiveBuddy]) => {
+        setApiBuddies(nextBuddies);
+        setApiActiveBuddy(nextActiveBuddy);
+        setActiveBuddyId(nextActiveBuddy.id as BuddyVariant);
+      })
+      .catch(() => {
+        setApiBuddies([]);
+        setApiActiveBuddy(null);
+      });
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined" || !window.localStorage.getItem(AUTH_TOKEN_KEY)) return;
     let cancelled = false;
@@ -66,5 +83,5 @@ export function useActiveBuddy() {
     }
   }, []);
 
-  return { activeBuddy, activeBuddyId, allBuddies, selectBuddy };
+  return { activeBuddy, activeBuddyId, allBuddies, refreshBuddyData, selectBuddy };
 }

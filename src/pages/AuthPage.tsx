@@ -101,7 +101,7 @@ export function AuthPage() {
               </p>
               <h1 className="mt-5 max-w-md text-5xl font-black leading-[1.02] text-foreground">Vào học nhanh, lưu tiến độ gọn.</h1>
               <p className="mt-4 max-w-md text-base font-semibold leading-7 text-muted-foreground">
-                Đăng nhập để đồng bộ nhiệm vụ, quiz, buddy và profile học tập trên cùng một tài khoản.
+                Đăng nhập để đồng bộ nhiệm vụ, quiz, buddy và hồ sơ học tập trên cùng một tài khoản.
               </p>
             </div>
 
