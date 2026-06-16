@@ -29,6 +29,7 @@ import { useActiveBuddy } from "../components/buddy/useActiveBuddy";
 import { StudyBuddyLogo } from "../components/StudyBuddyLogo";
 import { apiClient } from "../services/apiClient";
 import type { ApiUser } from "../services/types";
+import { USER_STATS_UPDATED_EVENT } from "../services/userStatsEvents";
 
 const navItems = [
   { to: "/dashboard", label: "Tổng quan", icon: Home },
@@ -109,6 +110,20 @@ export function AppLayout() {
   const [stats, setStats] = useState<ApiUser | null>(null);
   const [activeQuizSession, setActiveQuizSession] = useState(() => readActiveQuizPomodoroSession());
 
+  async function refreshUserStats() {
+    if (mode === "guest") {
+      setStats(null);
+      return;
+    }
+
+    try {
+      const response = await apiClient.get<ApiUser>("/users/me/stats");
+      setStats(response.data);
+    } catch {
+      // Keep the current values if the refresh fails.
+    }
+  }
+
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
@@ -136,10 +151,19 @@ export function AppLayout() {
     let cancelled = false;
     apiClient.get<ApiUser>("/users/me/stats").then((response) => {
       if (!cancelled) setStats(response.data);
-    });
+    }).catch(() => undefined);
     return () => {
       cancelled = true;
     };
+  }, [mode]);
+
+  useEffect(() => {
+    const handleStatsUpdated = () => {
+      void refreshUserStats();
+    };
+
+    window.addEventListener(USER_STATS_UPDATED_EVENT, handleStatsUpdated);
+    return () => window.removeEventListener(USER_STATS_UPDATED_EVENT, handleStatsUpdated);
   }, [mode]);
 
   useEffect(() => {

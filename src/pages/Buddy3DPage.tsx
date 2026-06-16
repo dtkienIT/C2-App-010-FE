@@ -6,6 +6,7 @@ import { Card } from "../components/Card";
 import { purchaseBuddy3DModel, purchaseRoomBackground } from "../services/buddy3dApi";
 import { apiClient } from "../services/apiClient";
 import type { ApiUser } from "../services/types";
+import { USER_STATS_UPDATED_EVENT } from "../services/userStatsEvents";
 
 const accentTone = {
   amber: "from-amber-100 to-orange-50 text-amber-700",
@@ -43,6 +44,15 @@ export function Buddy3DPage() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    const handleStatsUpdated = () => {
+      void refreshCoins();
+    };
+
+    window.addEventListener(USER_STATS_UPDATED_EVENT, handleStatsUpdated);
+    return () => window.removeEventListener(USER_STATS_UPDATED_EVENT, handleStatsUpdated);
   }, []);
 
   async function refreshCoins() {

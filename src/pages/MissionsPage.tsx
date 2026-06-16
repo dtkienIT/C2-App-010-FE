@@ -2,7 +2,7 @@ import { ClipboardList } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { QuestCard } from "../components/QuestCard";
-import { claimMission, completeMission, getMissions } from "../services/missionsApi";
+import { claimMission, getMissions } from "../services/missionsApi";
 import type { Mission } from "../services/types";
 
 const tabs = [
@@ -22,6 +22,7 @@ export function MissionsPage() {
       setMissions([]);
       return;
     }
+
     let cancelled = false;
     setIsLoading(true);
     getMissions(activeTab)
@@ -31,15 +32,11 @@ export function MissionsPage() {
       .finally(() => {
         if (!cancelled) setIsLoading(false);
       });
+
     return () => {
       cancelled = true;
     };
   }, [activeTab, mode]);
-
-  async function handleComplete(missionId: string) {
-    const updated = await completeMission(missionId);
-    setMissions((current) => current.map((mission) => (mission.id === missionId ? updated : mission)));
-  }
 
   async function handleClaim(missionId: string) {
     const updated = await claimMission(missionId);
@@ -50,7 +47,7 @@ export function MissionsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-black text-foreground">Nhiệm vụ học tập</h1>
-        <p className="mt-2 text-muted-foreground">Hoàn thành nhiệm vụ để nhận XP, coin và badge.</p>
+        <p className="mt-2 text-muted-foreground">Nhiệm vụ sẽ tự tăng tiến độ theo hoạt động học và quiz của bạn.</p>
       </div>
 
       <div className="inline-flex rounded-2xl border border-border bg-card p-1 shadow-sm">
@@ -73,18 +70,11 @@ export function MissionsPage() {
         {missions.map((quest) => (
           <div className="space-y-3" key={quest.id}>
             <QuestCard icon={ClipboardList} {...quest} />
-            <div className="flex flex-wrap gap-2">
-              {!quest.completed ? (
-                <button className="secondary-button" onClick={() => void handleComplete(quest.id)} type="button">
-                  Đánh dấu hoàn thành
-                </button>
-              ) : null}
-              {quest.completed && !quest.isClaimed ? (
-                <button className="primary-button" onClick={() => void handleClaim(quest.id)} type="button">
-                  Nhận thưởng
-                </button>
-              ) : null}
-            </div>
+            {quest.completed && !quest.isClaimed ? (
+              <button className="primary-button" onClick={() => void handleClaim(quest.id)} type="button">
+                Nhận thưởng
+              </button>
+            ) : null}
           </div>
         ))}
       </section>

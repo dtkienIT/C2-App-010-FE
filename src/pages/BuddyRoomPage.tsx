@@ -4,13 +4,9 @@ import {
   BadgeCheck,
   BookOpenCheck,
   Brain,
-  CheckCircle2,
-  Coffee,
   Flame,
-  Heart,
   Laugh,
   Palette,
-  Play,
   RotateCw,
   Sparkles,
   Stars,
@@ -92,20 +88,8 @@ type DemoBuddyStats = {
   motivation: number;
 };
 
-type CompanionQuestId = "news" | "quiz";
-type QuestStatus = "suggested" | "active";
 type BuddyRewardAction = "spin" | "jump" | "happyDance" | "laugh" | "stars";
 type CompanionLineTone = "gentle" | "focus" | "celebrate" | "care";
-type CompanionQuest = {
-  id: CompanionQuestId;
-  title: string;
-  shortTitle: string;
-  description: string;
-  completeLabel: string;
-  icon: LucideIcon;
-  startLabel: string;
-  statBoost: Partial<DemoBuddyStats>;
-};
 
 type CompanionLine = {
   cta?: string;
@@ -135,29 +119,6 @@ function resolveDemoStateKey(stats: DemoBuddyStats) {
   if (stats.motivation >= 38) return "idle" as const;
   return "sleepy" as const;
 }
-
-const companionQuests: Record<CompanionQuestId, CompanionQuest> = {
-  news: {
-    id: "news",
-    title: "News Quest 2 phut",
-    shortTitle: "News Quest",
-    description: "Chon mot tin, doc tom tat, lay 1 y chinh roi quay lai Buddy.",
-    completeLabel: "Da xong News Quest",
-    icon: BookOpenCheck,
-    startLabel: "Bat dau News Quest",
-    statBoost: { energy: -2, focus: 7, motivation: 13 },
-  },
-  quiz: {
-    id: "quiz",
-    title: "Quiz nhanh 3 cau",
-    shortTitle: "Quiz",
-    description: "Lam mot quiz nho de Buddy mo khoa animation vui.",
-    completeLabel: "Hoan thanh quiz",
-    icon: Brain,
-    startLabel: "Lam quiz nhanh",
-    statBoost: { energy: -3, focus: 9, motivation: 15 },
-  },
-};
 
 const rewardActionOrder: BuddyRewardAction[] = ["spin", "jump", "happyDance", "laugh", "stars"];
 
@@ -208,13 +169,6 @@ const rewardActionMeta: Record<
   },
 };
 
-const companionToneTheme: Record<CompanionLineTone, string> = {
-  care: "border-orange-200 bg-orange-50 text-orange-900",
-  celebrate: "border-emerald-200 bg-emerald-50 text-emerald-950",
-  focus: "border-sky-200 bg-sky-50 text-sky-950",
-  gentle: "border-violet-200 bg-violet-50 text-violet-950",
-};
-
 const defaultCompanionLine: CompanionLine = {
   cta: "Bat dau quest nho",
   source: "Buddy goi y",
@@ -228,11 +182,6 @@ function applyStatDelta(stats: DemoBuddyStats, delta: Partial<DemoBuddyStats>) {
     focus: clampStat(stats.focus + (delta.focus ?? 0)),
     motivation: clampStat(stats.motivation + (delta.motivation ?? 0)),
   };
-}
-
-function pickRewardAction(questId: CompanionQuestId, rewardCount: number) {
-  const questOffset = questId === "news" ? 1 : 2;
-  return rewardActionOrder[(rewardCount + questOffset) % rewardActionOrder.length];
 }
 
 function resolveBuddyReactionAnimation(action?: BuddyRewardAction) {
@@ -269,11 +218,6 @@ function resolveBuddy3DReactionCue(action?: BuddyRewardAction, nonce?: number) {
     ...actionMap[action],
     nonce,
   };
-}
-
-function resolveNextQuestId(currentQuestId: CompanionQuestId) {
-  if (currentQuestId === "news") return "quiz";
-  return "news";
 }
 
 const chasamRoomThemes: Record<
@@ -355,8 +299,6 @@ export function BuddyRoomPage() {
     focus: clampStat(activeBuddy.focus ?? 68),
     motivation: clampStat(activeBuddy.motivation ?? 84),
   });
-  const [activeQuestId, setActiveQuestId] = useState<CompanionQuestId>("quiz");
-  const [questStatus, setQuestStatus] = useState<QuestStatus>("suggested");
   const [companionLine, setCompanionLine] = useState<CompanionLine>(defaultCompanionLine);
   const [rewardBurst, setRewardBurst] = useState<BuddyRewardBurst | null>(null);
   const [unlockedRewards, setUnlockedRewards] = useState<UnlockedBuddyReward[]>([]);
@@ -367,8 +309,6 @@ export function BuddyRoomPage() {
 
   const activeChasamSkin = chasamSkins.find((skin) => skin.id === preferences.chasamSkinId) ?? chasamSkins[0];
   const derived2DStateKey = useMemo(() => resolveDemoStateKey(demoStats), [demoStats]);
-  const activeQuest = companionQuests[activeQuestId];
-
   const owner2Experience = useOwner2BuddyRoomExperience({
     activeBuddyId: activeBuddy.id,
     energy: demoStats.energy,
@@ -483,7 +423,6 @@ export function BuddyRoomPage() {
         tone: "celebrate",
       });
     } catch {
-      setDemoStats((current) => applyStatDelta(current, { energy: 3, focus: 5, motivation: 6 }));
       setCompanionLine({
         cta: "Quay lai quiz khi san sang",
         source: "Mini quiz complete",
@@ -493,49 +432,6 @@ export function BuddyRoomPage() {
     }
     playBuddyReward(rewardAction, "Mini quiz");
   };
-
-
-  const startQuest = (questId = activeQuestId) => {
-    if (isQuizLocked) {
-      nudgeQuizLock();
-      return;
-    }
-    const quest = companionQuests[questId];
-    markCompanionInteraction();
-    setActiveQuestId(questId);
-    setQuestStatus("active");
-    setDemoStats((current) => applyStatDelta(current, { focus: 5, motivation: 2 }));
-    setCompanionLine({
-      cta: quest.completeLabel,
-      source: "Break Pact",
-      text: `Neu ban xong ${quest.shortTitle}, toi se bieu dien ${rewardActionMeta[pickRewardAction(questId, unlockedRewards.length)].label} cho ban xem.`,
-      tone: "focus",
-    });
-    setActiveExpressionId("regoff");
-    setActiveMotionId("taiki");
-    setMotionNonce((value) => value + 1);
-  };
-
-  const completeQuest = (questId = activeQuestId) => {
-    if (isQuizLocked) {
-      nudgeQuizLock();
-      return;
-    }
-    const quest = companionQuests[questId];
-    const rewardAction = pickRewardAction(questId, unlockedRewards.length);
-    markCompanionInteraction();
-    setDemoStats((current) => applyStatDelta(current, quest.statBoost));
-    playBuddyReward(rewardAction, quest.shortTitle);
-    setCompanionLine({
-      cta: "Chon quest tiep theo",
-      source: "Quest complete",
-      text: `Xong roi! Minh vua mo ${rewardActionMeta[rewardAction].label} cho Buddy. Hoc xong la Buddy vui thay ro luon.`,
-      tone: "celebrate",
-    });
-    setQuestStatus("suggested");
-    setActiveQuestId(resolveNextQuestId(questId));
-  };
-
   const handleBuddyTap = () => {
     if (isQuizLocked) {
       nudgeQuizLock();
@@ -549,8 +445,6 @@ export function BuddyRoomPage() {
       text: "Ban cham minh roi do. Lam mot micro quest nho nhe khong? Xong minh tang mot reaction cute.",
       tone: "gentle",
     });
-    setActiveQuestId("quiz");
-    setQuestStatus("suggested");
     setActiveExpressionId("niyari");
     setMotionNonce((value) => value + 1);
   };
@@ -561,8 +455,6 @@ export function BuddyRoomPage() {
       return;
     }
     markCompanionInteraction();
-    setActiveQuestId("news");
-    setQuestStatus("active");
     setDemoStats((current) => applyStatDelta(current, { focus: 4, motivation: 2 }));
     setCompanionLine({
       cta: "Doc xong thi bao Buddy",
@@ -605,8 +497,6 @@ export function BuddyRoomPage() {
       text: "Quay lai roi ha. Minh giu nhip nhe thoi, bat dau mot quest ngan nua nhe.",
       tone: "care",
     });
-    setActiveQuestId("quiz");
-    setQuestStatus("suggested");
   };
 
   useEffect(() => {
@@ -691,8 +581,6 @@ export function BuddyRoomPage() {
   }, [isPomodoroBreakMode, isQuizLocked]);
 
   useEffect(() => {
-    if (questStatus === "active") return undefined;
-
     const timeoutId = window.setTimeout(() => {
       if (Date.now() - lastCompanionInteractionAt < 18000) return;
       setDemoStats((current) => applyStatDelta(current, { motivation: -3 }));
@@ -705,10 +593,10 @@ export function BuddyRoomPage() {
     }, 19000);
 
     return () => window.clearTimeout(timeoutId);
-  }, [lastCompanionInteractionAt, questStatus]);
+  }, [lastCompanionInteractionAt]);
 
   useEffect(() => {
-    if (breakReturnHintShown || questStatus === "active" || unlockedRewards.length === 0) return undefined;
+    if (breakReturnHintShown || unlockedRewards.length === 0) return undefined;
 
     const timeoutId = window.setTimeout(() => {
       setBreakReturnHintShown(true);
@@ -721,7 +609,7 @@ export function BuddyRoomPage() {
     }, 9000);
 
     return () => window.clearTimeout(timeoutId);
-  }, [breakReturnHintShown, questStatus, unlockedRewards.length]);
+  }, [breakReturnHintShown, unlockedRewards.length]);
 
   const renderBuddyCompanionSystems = () => (
     <>
@@ -765,68 +653,12 @@ export function BuddyRoomPage() {
         ))}
       </div>
 
-      <div className="grid gap-3 2xl:grid-cols-[minmax(0,1.08fr)_minmax(280px,0.92fr)]">
-        <section className="rounded-[1.5rem] border border-border/70 bg-card/90 p-4 shadow-soft">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-primary">
-                <Heart size={13} /> Break Pact
-              </p>
-              <h2 className="mt-3 text-xl font-black text-foreground">{activeQuest.title}</h2>
-              <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-muted-foreground">{activeQuest.description}</p>
-            </div>
-            <div className={`rounded-2xl border px-3 py-2 text-xs font-black uppercase tracking-[0.12em] ${companionToneTheme[companionLine.tone]}`}>
-              {questStatus === "active" ? "Dang lam" : "Buddy goi y"}
-            </div>
-          </div>
-
-          <div className="mt-4 rounded-[1.25rem] border border-dashed border-primary/35 bg-primary/5 p-4">
-            <div className="flex items-start gap-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground">
-                <Sparkles size={17} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-black text-foreground">Neu ban xong quest nay, Buddy se bieu dien.</p>
-                <p className="mt-1 text-sm font-semibold leading-6 text-muted-foreground">
-                  Reward tiep theo: {rewardActionMeta[pickRewardAction(activeQuestId, unlockedRewards.length)].label}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            {questStatus === "active" ? (
-              <button className="primary-button disabled:opacity-55" disabled={isQuizLocked} onClick={() => completeQuest(activeQuestId)} type="button">
-                <CheckCircle2 size={16} />
-                {activeQuest.completeLabel}
-              </button>
-            ) : (
-              <button className="primary-button disabled:opacity-55" disabled={isQuizLocked} onClick={() => startQuest(activeQuestId)} type="button">
-                <Play size={16} />
-                {activeQuest.startLabel}
-              </button>
-            )}
-
-            <button className="secondary-button disabled:opacity-55" disabled={isQuizLocked} onClick={() => startQuest("quiz")} type="button">
-              <Brain size={16} />
-              Quiz nhanh
-            </button>
-            <button className="secondary-button disabled:opacity-55" disabled={isQuizLocked} onClick={() => startQuest("news")} type="button">
-              <BookOpenCheck size={16} />
-              News Quest
-            </button>
-            <button className="secondary-button disabled:opacity-55" disabled={isQuizLocked} onClick={handleBreakReturn} type="button">
-              <Coffee size={16} />
-              Quay lai sau break
-            </button>
-          </div>
-        </section>
-
+      <div className="grid gap-3">
         <section className="rounded-[1.5rem] border border-border/70 bg-card/90 p-4 shadow-soft">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">News quest</p>
-              <h2 className="mt-1 text-lg font-black text-foreground">Newsfeed chuyển xuống đây</h2>
+              <h2 className="mt-1 text-lg font-black text-foreground">Newsfeed </h2>
             </div>
             <div className="grid h-10 w-10 place-items-center rounded-2xl bg-amber-100 text-amber-700">
               <Trophy size={18} />
@@ -1128,7 +960,7 @@ export function BuddyRoomPage() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">Pomodoro mini quiz</p>
-                  <h2 className="mt-1 text-lg font-black text-foreground">Mini quiz thay vị trí newsfeed</h2>
+                  <h2 className="mt-1 text-lg font-black text-foreground">Mini quiz</h2>
                 </div>
                 <div className="grid h-10 w-10 place-items-center rounded-2xl bg-amber-100 text-amber-700">
                   <Brain size={18} />
@@ -1136,7 +968,7 @@ export function BuddyRoomPage() {
               </div>
 
               <p className="mt-3 text-sm font-semibold leading-6 text-muted-foreground">
-                Mini quiz nằm ở đây cho cả buddy 2D và 3D trong room. Khi quiz chuyển sang break, timer Pomodoro cũng xuất hiện ngay tại vị trí này.
+                Khi đang trong timer break, bạn có thể làm một mini quiz nho nhỏ để lấy reward tương tác với Buddy và chuẩn bị tinh thần cho quiz tiếp theo.
               </p>
 
               <div className="mt-4">

@@ -62,9 +62,9 @@ function shortLine(text: string) {
 
 export function Buddy3DCard({ buddy, onSelect, selected = false }: Buddy3DCardProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const level = buddy.level ?? 12;
-  const xp = buddy.xp ?? 680;
-  const nextLevelXp = buddy.nextLevelXp ?? 1200;
+  const level = buddy.level ?? 0;
+  const xp = buddy.xp ?? 0;
+  const nextLevelXp = buddy.nextLevelXp ?? 120;
   const progressPercent = Math.min(100, Math.round((xp / nextLevelXp) * 100));
   const compareStats = useMemo(
     () => [

@@ -12,6 +12,7 @@ import {
 import { useActiveBuddy } from "../components/buddy/useActiveBuddy";
 import { Card } from "../components/Card";
 import { generateQuiz, submitGeneratedQuizAttempt } from "../services/quizzesApi";
+import { emitUserStatsUpdated } from "../services/userStatsEvents";
 import type { Quiz } from "../services/types";
 
 export function QuizPage() {
@@ -102,6 +103,7 @@ export function QuizPage() {
         quiz.quizId ?? quiz.id,
         Object.entries(selectedAnswers).map(([questionId, selectedOptionId]) => ({ questionId, selectedOptionId })),
       );
+      emitUserStatsUpdated();
       clearActiveQuizPomodoroSession();
       navigate(`/quiz-result?attemptId=${attempt.attemptId}`);
     } catch {

@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { apiClient } from "../services/apiClient";
 import type { ApiUser } from "../services/types";
+import { USER_STATS_UPDATED_EVENT } from "../services/userStatsEvents";
 
 const roleLabels = {
   admin: "Quản trị viên",
@@ -39,6 +40,17 @@ export function ProfilePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [stats, setStats] = useState<ApiUser | null>(null);
 
+  async function refreshProfileStats() {
+    if (isGuest) return;
+
+    try {
+      const response = await apiClient.get<ApiUser>("/users/me/stats");
+      setStats(response.data);
+    } catch {
+      // Keep the current values if realtime refresh fails.
+    }
+  }
+
   if (!user) {
     return null;
   }
@@ -70,10 +82,19 @@ export function ProfilePage() {
     let cancelled = false;
     apiClient.get<ApiUser>("/users/me/stats").then((response) => {
       if (!cancelled) setStats(response.data);
-    });
+    }).catch(() => undefined);
     return () => {
       cancelled = true;
     };
+  }, [isGuest]);
+
+  useEffect(() => {
+    const handleStatsUpdated = () => {
+      void refreshProfileStats();
+    };
+
+    window.addEventListener(USER_STATS_UPDATED_EVENT, handleStatsUpdated);
+    return () => window.removeEventListener(USER_STATS_UPDATED_EVENT, handleStatsUpdated);
   }, [isGuest]);
 
   const profileStats = stats ?? {
