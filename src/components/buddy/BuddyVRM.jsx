@@ -1,10 +1,10 @@
 import React from "react";
 import { useFrame } from "@react-three/fiber";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimationMixer, FrontSide, LoopOnce, LoopRepeat } from "three";
 import { NarutoVRM } from "./NarutoVRM";
 import { ACTION_LIBRARY, DEFAULT_ACTION } from "./config/buddyActions";
-import { DEFAULT_VRM_URL, MODEL_CONFIGS, NARUTO_VRM_URL } from "./config/buddyModels";
+import { DEFAULT_VRM_URL, MODEL_CONFIGS, NARUTO_VRM_URL, resolveCanonicalVRMUrl } from "./config/buddyModels";
 import { logActionWorldScale } from "./utils/debugTransform";
 import { getStableModelFit } from "./utils/fitVRMModel";
 import { loadMixamoAnimationClip } from "./utils/loadMixamoAnimation";
@@ -20,6 +20,8 @@ const RARE_ACTIONS = new Set(["rasengan", "spin", "shoot", "squat", "jump", "ang
 const ACTION_CROSSFADE_SECONDS = 0.32;
 const ACTION_STOP_DELAY_MS = 420;
 const ENABLE_BUDDY_DEBUG = false;
+const ENTRANCE_START_X = -4.2;
+const ENTRANCE_START_ROTATION_Y = 0.26;
 
 function debugBuddy(...args) {
   if (ENABLE_BUDDY_DEBUG) {
@@ -60,21 +62,28 @@ async function loadCachedMotionClip({ actionName, format, url, vrm, vrmUrl }) {
   return MOTION_CLIP_CACHE.get(cacheKey);
 }
 
-function useVRMModel(vrmUrl) {
-  const [state, setState] = useState(() => getCachedVRMModelState(vrmUrl));
+function useVRMModel(vrmUrl, modelId) {
+  const canonicalVrmUrl = useMemo(() => resolveCanonicalVRMUrl(vrmUrl, modelId), [modelId, vrmUrl]);
+  const [state, setState] = useState(() => getCachedVRMModelState(canonicalVrmUrl));
   const requestIdRef = useRef(0);
+  const previousVrmUrlRef = useRef(canonicalVrmUrl);
 
   useEffect(() => {
+    if (previousVrmUrlRef.current === canonicalVrmUrl && state.vrm) {
+      return undefined;
+    }
+
     let cancelled = false;
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
+    previousVrmUrlRef.current = canonicalVrmUrl;
 
-    const cachedState = getCachedVRMModelState(vrmUrl);
+    const cachedState = getCachedVRMModelState(canonicalVrmUrl);
     setState(cachedState);
 
     (async () => {
       try {
-        const vrm = await loadVRMModel(vrmUrl);
+        const vrm = await loadVRMModel(canonicalVrmUrl);
 
         if (cancelled || requestIdRef.current !== requestId) return;
 
@@ -82,7 +91,7 @@ function useVRMModel(vrmUrl) {
       } catch (error) {
         if (cancelled || requestIdRef.current !== requestId) return;
 
-        console.error("Failed to load VRM model", { error, vrmUrl });
+        console.error("Failed to load VRM model", { error, vrmUrl: canonicalVrmUrl });
         setState({ error, loading: false, vrm: null });
       }
     })();
@@ -90,9 +99,12 @@ function useVRMModel(vrmUrl) {
     return () => {
       cancelled = true;
     };
-  }, [vrmUrl]);
+  }, [canonicalVrmUrl, state.vrm]);
 
-  return state;
+  return {
+    ...state,
+    vrmUrl: canonicalVrmUrl,
+  };
 }
 
 function stripVRMOutlineMaterial(material) {
@@ -361,12 +373,14 @@ function tuneVRMModelMaterials(vrm, context = {}) {
 
 function VRMAvatar({
   actionNonce,
+  autoEnterOnMount = false,
   currentAction,
   entranceSequenceId = 0,
   loadedActions,
   modelId,
   modelConfig,
   onActionFinished,
+  onReady,
   proceduralEnabled,
   resolvedActions,
   vrm,
@@ -390,12 +404,14 @@ function VRMAvatar({
   const entranceMotionRef = useRef({
     active: false,
     elapsed: 0,
-    fromRotationY: -0.32,
-    fromX: 1.35,
+    fromRotationY: ENTRANCE_START_ROTATION_Y,
+    fromX: ENTRANCE_START_X,
     targetRotationY: 0,
     targetX: 0,
   });
   const lastEntranceSequenceIdRef = useRef(0);
+  const hasNotifiedReadyRef = useRef(false);
+  const [isScenePrimed, setIsScenePrimed] = useState(false);
   const [fit, setFit] = useState(null);
   const proceduralBones = useMemo(() => {
     const humanoid = vrm?.humanoid;
@@ -421,6 +437,15 @@ function VRMAvatar({
   useEffect(() => {
     onActionFinishedRef.current = onActionFinished;
   }, [onActionFinished]);
+
+  useEffect(() => {
+    if (!fit || hasNotifiedReadyRef.current) {
+      return;
+    }
+
+    hasNotifiedReadyRef.current = true;
+    onReady?.();
+  }, [fit, onReady]);
 
   const resetNodeTransform = (node) => {
     if (!node) return;
@@ -459,6 +484,7 @@ function VRMAvatar({
     proceduralRef.current = { action: DEFAULT_ACTION, elapsed: 0 };
     entranceMotionRef.current.active = false;
     entranceMotionRef.current.elapsed = 0;
+    hasNotifiedReadyRef.current = false;
     mixerRef.current = null;
 
     resetNodeTransform(entranceGroupRef.current);
@@ -479,6 +505,7 @@ function VRMAvatar({
     if (!vrm) return undefined;
 
     resetRuntimeState();
+    setIsScenePrimed(false);
     setFit(null);
 
     const springBoneManager = vrm.springBoneManager;
@@ -723,6 +750,22 @@ function VRMAvatar({
     };
   }, [scale]);
 
+  useLayoutEffect(() => {
+    if (!fit || !entranceGroupRef.current || !groupRef.current) {
+      return;
+    }
+
+    if (autoEnterOnMount && entranceSequenceId === 0 && lastEntranceSequenceIdRef.current === 0) {
+      entranceGroupRef.current.position.set(ENTRANCE_START_X, 0, 0);
+      entranceGroupRef.current.rotation.set(0, ENTRANCE_START_ROTATION_Y, 0);
+      setIsScenePrimed(false);
+    } else {
+      entranceGroupRef.current.position.set(0, 0, 0);
+      entranceGroupRef.current.rotation.set(0, 0, 0);
+      setIsScenePrimed(true);
+    }
+  }, [autoEnterOnMount, entranceSequenceId, fit, vrm]);
+
   useEffect(() => {
     if (!entranceGroupRef.current) {
       return;
@@ -736,14 +779,15 @@ function VRMAvatar({
     entranceMotionRef.current = {
       active: true,
       elapsed: 0,
-      fromRotationY: -0.32,
-      fromX: 1.35,
+      fromRotationY: ENTRANCE_START_ROTATION_Y,
+      fromX: ENTRANCE_START_X,
       targetRotationY: 0,
       targetX: 0,
     };
 
-    entranceGroupRef.current.position.set(1.35, 0, 0);
-    entranceGroupRef.current.rotation.set(0, -0.32, 0);
+    entranceGroupRef.current.position.set(ENTRANCE_START_X, 0, 0);
+    entranceGroupRef.current.rotation.set(0, ENTRANCE_START_ROTATION_Y, 0);
+    setIsScenePrimed(true);
   }, [entranceSequenceId]);
 
   const lockAnchorTransform = () => {
@@ -993,7 +1037,7 @@ function VRMAvatar({
   }
 
   return (
-    <group ref={entranceGroupRef}>
+    <group ref={entranceGroupRef} visible={isScenePrimed}>
       <group ref={groupRef} scale={scale}>
         <primitive
           object={vrm.scene}
@@ -1006,6 +1050,7 @@ function VRMAvatar({
 
 export function BuddyVRM({
   actionNonce = 0,
+  autoEnterOnMount = false,
   currentAction = DEFAULT_ACTION,
   entranceSequenceId = 0,
   modelId,
@@ -1015,7 +1060,7 @@ export function BuddyVRM({
   proceduralFallback = true,
   vrmUrl = DEFAULT_VRM_URL,
 }) {
-  const { error, loading, vrm } = useVRMModel(vrmUrl);
+  const { error, loading, vrm, vrmUrl: canonicalVrmUrl } = useVRMModel(vrmUrl, modelId);
   const [loadedActions, setLoadedActions] = useState({});
   const [loadingActions, setLoadingActions] = useState({});
   const [resolvedActions, setResolvedActions] = useState({});
@@ -1023,7 +1068,7 @@ export function BuddyVRM({
   const loadedActionNamesRef = useRef(new Set());
   const loadingActionNamesRef = useRef(new Set());
   const modelSessionRef = useRef(0);
-  const modelConfig = MODEL_CONFIGS[vrmUrl] ?? MODEL_CONFIGS[DEFAULT_VRM_URL];
+  const modelConfig = MODEL_CONFIGS[canonicalVrmUrl] ?? MODEL_CONFIGS[DEFAULT_VRM_URL];
   const sharedActionAliases = useMemo(() => {
     const aliasMap = new Map();
 
@@ -1120,7 +1165,7 @@ export function BuddyVRM({
       format: actionConfig.format,
       url: actionConfig.url,
       vrm: sourceVrm,
-      vrmUrl,
+      vrmUrl: canonicalVrmUrl,
     });
 
     if (sessionId !== modelSessionRef.current) {
@@ -1133,7 +1178,7 @@ export function BuddyVRM({
 
   useEffect(() => {
     modelSessionRef.current += 1;
-  }, [vrmUrl, modelId]);
+  }, [canonicalVrmUrl, modelId]);
 
   useEffect(() => {
     if (!vrm) {
@@ -1186,7 +1231,7 @@ export function BuddyVRM({
           debugBuddy("[BuddyVRM] core action ready", {
             action: actionName,
             modelId,
-            vrmUrl,
+            vrmUrl: canonicalVrmUrl,
           });
         }, index * 100),
       );
@@ -1196,7 +1241,7 @@ export function BuddyVRM({
       cancelled = true;
       cleanupTasks.forEach((cleanup) => cleanup?.());
     };
-  }, [modelConfig.preferProceduralOnly, modelId, sharedActionAliases, vrm, vrmUrl]);
+  }, [canonicalVrmUrl, modelConfig.preferProceduralOnly, modelId, sharedActionAliases, vrm]);
 
   useEffect(() => {
     if (!vrm || modelConfig.preferProceduralOnly || loading || !warmupState.visibleReady) {
@@ -1217,7 +1262,7 @@ export function BuddyVRM({
           debugBuddy("[BuddyVRM] deferred action cached", {
             action: actionName,
             modelId,
-            vrmUrl,
+            vrmUrl: canonicalVrmUrl,
           });
         }, 900 + index * 180),
       );
@@ -1227,7 +1272,7 @@ export function BuddyVRM({
       cancelled = true;
       cleanupTasks.forEach((cleanup) => cleanup?.());
     };
-  }, [loading, modelConfig.preferProceduralOnly, modelId, vrm, vrmUrl, warmupState.visibleReady]);
+  }, [canonicalVrmUrl, loading, modelConfig.preferProceduralOnly, modelId, vrm, warmupState.visibleReady]);
 
   useEffect(() => {
     if (!vrm || modelConfig.preferProceduralOnly) {
@@ -1252,15 +1297,7 @@ export function BuddyVRM({
     };
 
     void loadAction();
-  }, [currentAction, modelConfig.preferProceduralOnly, vrm, vrmUrl, warmupState.completed, warmupState.total]);
-
-  useEffect(() => {
-    if (!vrm || loading) {
-      return;
-    }
-
-    onReady?.();
-  }, [loading, onReady, vrm]);
+  }, [canonicalVrmUrl, currentAction, modelConfig.preferProceduralOnly, vrm, warmupState.completed, warmupState.total]);
 
   useEffect(() => {
     onStateChange?.({
@@ -1268,10 +1305,11 @@ export function BuddyVRM({
       loading,
       loadingActions,
       progress: warmupState.total > 0 ? warmupState.completed / warmupState.total : 1,
+      requiresContinuousRender: Boolean(vrm) && !error,
       visibleReady: warmupState.visibleReady || modelConfig.preferProceduralOnly,
       warmingUp: !loading && !modelConfig.preferProceduralOnly && warmupState.completed < warmupState.total,
     });
-  }, [error, loading, loadingActions, modelConfig.preferProceduralOnly, onStateChange, warmupState]);
+  }, [error, loading, loadingActions, modelConfig.preferProceduralOnly, onStateChange, vrm, warmupState]);
 
   if (!vrm) {
     return null;
@@ -1281,16 +1319,18 @@ export function BuddyVRM({
     <Suspense fallback={null}>
       <VRMAvatar
         actionNonce={actionNonce}
+        autoEnterOnMount={autoEnterOnMount}
         currentAction={currentAction}
         entranceSequenceId={entranceSequenceId}
         loadedActions={loadedActions}
         modelId={modelId}
         modelConfig={modelConfig}
         onActionFinished={onActionFinished}
+        onReady={onReady}
         proceduralEnabled={proceduralFallback}
         resolvedActions={resolvedActions}
         vrm={vrm}
-        vrmUrl={vrmUrl}
+        vrmUrl={canonicalVrmUrl}
       />
     </Suspense>
   );

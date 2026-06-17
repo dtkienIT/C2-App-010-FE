@@ -18,14 +18,16 @@ import {
   X,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { BuddyAvatar } from "../components/BuddyAvatar";
+import { StreakPopover } from "../components/StreakPopover";
 import { readActiveQuizPomodoroSession } from "../components/buddy/quizPomodoroBridge";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { useActiveBuddy } from "../components/buddy/useActiveBuddy";
+import { HeaderNotificationsPopover } from "../features/notifications/HeaderNotificationsPopover";
 import { StudyBuddyLogo } from "../components/StudyBuddyLogo";
 import { apiClient } from "../services/apiClient";
 import type { ApiUser } from "../services/types";
@@ -56,6 +58,9 @@ function MetricCard({
   wide = false,
   current,
   max,
+  interactive = false,
+  isActive = false,
+  onClick,
 }: {
   icon: ReactNode;
   label: string;
@@ -63,15 +68,18 @@ function MetricCard({
   wide?: boolean;
   current?: number;
   max?: number;
+  interactive?: boolean;
+  isActive?: boolean;
+  onClick?: () => void;
 }) {
   const progressValue = current && max ? (current / max) * 100 : 0;
-  return (
+  const content = (
     <div
       className={`hidden h-14 flex-1 items-center gap-2 rounded-xl border border-border/80 bg-card/88 px-2.5 text-card-foreground shadow-sm backdrop-blur xl:flex min-[1600px]:h-16 min-[1600px]:gap-3 min-[1600px]:px-3 2xl:px-4 ${
         wide
           ? "basis-[210px] min-w-[190px] xl:basis-[228px] xl:min-w-[208px] min-[1600px]:basis-[280px] min-[1600px]:min-w-[240px] 2xl:basis-[390px] 2xl:min-w-[390px]"
           : "basis-[96px] min-w-[88px] xl:basis-[104px] xl:min-w-[96px] min-[1600px]:basis-[132px] min-[1600px]:min-w-[120px] 2xl:basis-[160px] 2xl:min-w-[160px]"
-      }`}
+      } ${interactive ? "cursor-pointer transition hover:-translate-y-0.5 hover:border-primary/35" : ""} ${isActive ? "border-primary/35 ring-2 ring-primary/10" : ""}`}
     >
       <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted text-accent min-[1600px]:h-10 min-[1600px]:w-10 2xl:h-11 2xl:w-11">{icon}</div>
       <div className="min-w-0 flex-1">
@@ -96,6 +104,16 @@ function MetricCard({
       </div>
     </div>
   );
+
+  if (!interactive || !onClick) {
+    return content;
+  }
+
+  return (
+    <button aria-expanded={isActive} className="contents" onClick={onClick} type="button">
+      {content}
+    </button>
+  );
 }
 
 export function AppLayout() {
@@ -109,6 +127,8 @@ export function AppLayout() {
   const [isGuestHeaderExpanded, setIsGuestHeaderExpanded] = useState(false);
   const [stats, setStats] = useState<ApiUser | null>(null);
   const [activeQuizSession, setActiveQuizSession] = useState(() => readActiveQuizPomodoroSession());
+  const [isStreakPopoverOpen, setIsStreakPopoverOpen] = useState(false);
+  const streakPopoverRef = useRef<HTMLDivElement | null>(null);
 
   async function refreshUserStats() {
     if (mode === "guest") {
@@ -177,6 +197,29 @@ export function AppLayout() {
       body.style.overflow = previousOverflow;
     };
   }, [isMobileMenuOpen]);
+
+  useEffect(() => {
+    if (!isStreakPopoverOpen) return;
+
+    function handlePointerDown(event: MouseEvent) {
+      if (!streakPopoverRef.current?.contains(event.target as Node)) {
+        setIsStreakPopoverOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsStreakPopoverOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isStreakPopoverOpen]);
 
   function handleLogout() {
     logout();
@@ -320,20 +363,31 @@ export function AppLayout() {
             <div className="hidden min-w-0 flex-1 flex-wrap items-center gap-2 xl:flex 2xl:flex-nowrap 2xl:gap-3">
               <MetricCard current={learningStats.xp} icon={<Sparkles size={24} />} label={`Level ${learningStats.level}`} max={learningStats.nextLevelXp} value={`${learningStats.xp} XP`} wide />
               <MetricCard icon={<Wallet className="text-amber-500" size={23} />} label="Xu" value={learningStats.coins.toLocaleString("vi-VN")} />
-              <MetricCard icon={<Flame className="text-orange-500" size={24} />} label="Streak" value={`${learningStats.streak} ngày`} />
+              <div className="relative" ref={streakPopoverRef}>
+                <MetricCard
+                  icon={<Flame className="text-orange-500" size={24} />}
+                  interactive
+                  isActive={isStreakPopoverOpen}
+                  label="Streak"
+                  onClick={() => setIsStreakPopoverOpen((current) => !current)}
+                  value={`${learningStats.streak} ngày`}
+                />
+                {isStreakPopoverOpen ? <StreakPopover streak={learningStats.streak} /> : null}
+              </div>
             </div>
 
             <div className="ml-auto flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">
               <ThemeToggle compact />
+              <HeaderNotificationsPopover />
               <button
-                className="hidden h-11 w-11 place-items-center rounded-xl border border-border bg-card text-sky-600 shadow-sm transition hover:-translate-y-0.5 sm:grid sm:h-12 sm:w-12"
+                className="hidden h-11 w-11 place-items-center rounded-xl border border-border bg-card text-sky-600 shadow-sm transition hover:-translate-y-0.5"
                 title="Phần thưởng"
                 type="button"
               >
                 <Gift size={20} />
               </button>
               <button
-                className="hidden relative h-11 w-11 place-items-center rounded-xl border border-border bg-card text-muted-foreground shadow-sm transition hover:-translate-y-0.5 sm:grid sm:h-12 sm:w-12"
+                className="hidden relative h-11 w-11 place-items-center rounded-xl border border-border bg-card text-muted-foreground shadow-sm transition hover:-translate-y-0.5"
                 title="Thông báo"
                 type="button"
               >

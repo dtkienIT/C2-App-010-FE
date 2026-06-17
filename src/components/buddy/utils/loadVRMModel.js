@@ -1,6 +1,6 @@
 import { VRMLoaderPlugin } from "@pixiv/three-vrm";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { DEFAULT_VRM_URL, MODEL_CONFIGS } from "../config/buddyModels";
+import { DEFAULT_VRM_URL, MODEL_CONFIGS, resolveCanonicalVRMUrl } from "../config/buddyModels";
 
 const VRM_MODEL_CACHE = new Map();
 const VRM_LOADER = new GLTFLoader();
@@ -17,7 +17,8 @@ function createPendingEntry() {
 }
 
 export function getCachedVRMModelState(vrmUrl) {
-  const entry = VRM_MODEL_CACHE.get(vrmUrl);
+  const canonicalVrmUrl = resolveCanonicalVRMUrl(vrmUrl);
+  const entry = VRM_MODEL_CACHE.get(canonicalVrmUrl);
 
   if (!entry) {
     return {
@@ -35,7 +36,8 @@ export function getCachedVRMModelState(vrmUrl) {
 }
 
 export function loadVRMModel(vrmUrl) {
-  let entry = VRM_MODEL_CACHE.get(vrmUrl);
+  const canonicalVrmUrl = resolveCanonicalVRMUrl(vrmUrl);
+  let entry = VRM_MODEL_CACHE.get(canonicalVrmUrl);
 
   if (entry?.status === "resolved" && entry.vrm) {
     return Promise.resolve(entry.vrm);
@@ -46,23 +48,23 @@ export function loadVRMModel(vrmUrl) {
   }
 
   entry = createPendingEntry();
-  VRM_MODEL_CACHE.set(vrmUrl, entry);
+  VRM_MODEL_CACHE.set(canonicalVrmUrl, entry);
 
   entry.promise = new Promise((resolve, reject) => {
     VRM_LOADER.load(
-      vrmUrl,
+      canonicalVrmUrl,
       (gltf) => {
         const vrm = gltf.userData.vrm;
 
         if (!vrm) {
-          const error = new Error(`VRM not found in ${vrmUrl}`);
+          const error = new Error(`VRM not found in ${canonicalVrmUrl}`);
           entry.status = "rejected";
           entry.error = error;
           reject(error);
           return;
         }
 
-        const modelConfig = MODEL_CONFIGS[vrmUrl] ?? MODEL_CONFIGS[DEFAULT_VRM_URL];
+        const modelConfig = MODEL_CONFIGS[canonicalVrmUrl] ?? MODEL_CONFIGS[DEFAULT_VRM_URL];
         vrm.scene.rotation.y = modelConfig?.rotationY ?? 0;
         entry.status = "resolved";
         entry.vrm = vrm;
@@ -79,4 +81,11 @@ export function loadVRMModel(vrmUrl) {
   });
 
   return entry.promise;
+}
+
+export function preloadVRMModel(vrmUrl) {
+  return loadVRMModel(vrmUrl).catch((error) => {
+    console.warn("Failed to preload VRM model", { error, vrmUrl });
+    return null;
+  });
 }

@@ -1,11 +1,27 @@
 import { LogIn, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { Buddy3DStage } from "../components/buddy/Buddy3DStage";
 import { BuddySelectionGrid } from "../components/buddy/BuddySelectionGrid";
 import { useActiveBuddy } from "../components/buddy/useActiveBuddy";
 import { useCompanionModelStore } from "../components/buddy/useCompanionModelStore";
+import { apiClient } from "../services/apiClient";
+import type { ApiUser } from "../services/types";
+import { USER_STATS_UPDATED_EVENT } from "../services/userStatsEvents";
+
+const USER_STATS_CACHE_KEY = "study-buddy-user-stats-cache";
+
+function readCachedJson<T>(storageKey: string): T | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    return raw ? JSON.parse(raw) as T : null;
+  } catch {
+    return null;
+  }
+}
 
 export function BuddySelectionPage() {
   const { mode } = useAuth();
@@ -13,7 +29,43 @@ export function BuddySelectionPage() {
   const { disableBuddy3D } = useCompanionModelStore();
   const navigate = useNavigate();
   const [guestPrompt, setGuestPrompt] = useState("");
+  const [userStats, setUserStats] = useState<ApiUser | null>(() => (mode === "authenticated" ? readCachedJson<ApiUser>(USER_STATS_CACHE_KEY) : null));
   const isGuest = mode === "guest";
+  const heroShellClassName = `bg-gradient-to-br ${activeBuddy.gradient} shadow-[0_26px_80px_rgba(15,23,42,0.10)] dark:bg-none`;
+  const heroPanelClassName = "border-white/65 bg-white/76 shadow-[0_18px_48px_rgba(15,23,42,0.10)] dark:border-border/70 dark:bg-card/55";
+  const chipClassName = "border-white/60 bg-white/82 text-slate-700 shadow-sm dark:border-border/80 dark:bg-card/85 dark:text-muted-foreground";
+
+  useEffect(() => {
+    if (mode !== "authenticated") {
+      setUserStats(null);
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const refreshUserStats = async () => {
+      try {
+        const response = await apiClient.get<ApiUser>("/users/me/stats");
+        if (cancelled) return;
+        setUserStats(response.data);
+        window.localStorage.setItem(USER_STATS_CACHE_KEY, JSON.stringify(response.data));
+      } catch {
+        if (cancelled) return;
+      }
+    };
+
+    void refreshUserStats();
+
+    const handleStatsUpdated = () => {
+      void refreshUserStats();
+    };
+
+    window.addEventListener(USER_STATS_UPDATED_EVENT, handleStatsUpdated);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(USER_STATS_UPDATED_EVENT, handleStatsUpdated);
+    };
+  }, [mode]);
 
   function showGuestPrompt(feature: string) {
     setGuestPrompt(feature);
@@ -37,10 +89,17 @@ export function BuddySelectionPage() {
     navigate(path);
   }
 
+  const displayUserStats = {
+    coins: userStats?.coins ?? 0,
+    level: userStats?.level ?? activeBuddy.level,
+    nextLevelXp: userStats?.nextLevelXp ?? activeBuddy.nextLevelXp,
+    xp: userStats?.xp ?? activeBuddy.xp,
+  };
+
   return (
     <div className="space-y-6 pt-6 lg:pt-10">
       {guestPrompt ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 px-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+        <div aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 px-4 backdrop-blur-sm" role="dialog">
           <div className="w-full max-w-md rounded-[1.5rem] border border-border bg-card p-5 text-card-foreground shadow-2xl">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -57,7 +116,7 @@ export function BuddySelectionPage() {
               </button>
             </div>
             <p className="mt-4 text-sm font-semibold leading-6 text-muted-foreground">
-              Bạn cần đăng nhập hoặc nâng cấp Guest Pass để sử dụng tính năng {guestPrompt}. Guest Pass hiện chỉ được xem danh sách Buddy.
+              Bạn cần đăng nhập hoặc nâng cấp Guest Pass để sử dụng tính năng {guestPrompt}. Guest Pass hiện chỉ dùng để xem danh sách Buddy.
             </p>
             <div className="mt-5 grid gap-2 sm:grid-cols-2">
               <button className="primary-button justify-center" onClick={() => navigate("/profile")} type="button">
@@ -72,24 +131,42 @@ export function BuddySelectionPage() {
         </div>
       ) : null}
 
-      <div className="hero-surface relative overflow-hidden rounded-[2rem] p-4 md:p-6">
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center">
+      <div className={`hero-surface relative overflow-hidden rounded-[2rem] p-4 md:p-6 ${heroShellClassName}`}>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.75),transparent_58%)] dark:hidden" />
+        <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center">
           <div className="relative">
             <p className="soft-chip">AI Study Buddy</p>
             <h1 className="mt-3 text-3xl font-black text-foreground md:text-4xl">Chọn Buddy Đồng Hành</h1>
             <p className="mt-2 max-w-2xl text-base leading-7 text-muted-foreground md:text-lg">Chọn buddy phù hợp với cách học của bạn.</p>
+
             <div className="mt-5 flex flex-wrap gap-2">
               {activeBuddy.tags.slice(0, 4).map((tag) => (
-                <span className="rounded-full border border-border/80 bg-card/85 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-muted-foreground" key={tag}>
+                <span className={`rounded-full border px-3 py-1 text-xs font-black uppercase tracking-[0.12em] ${chipClassName}`} key={tag}>
                   {tag}
                 </span>
               ))}
             </div>
-            <div className="mt-5 flex flex-wrap items-center gap-3">
-              <div className="rounded-2xl border border-border/80 bg-card/85 px-4 py-3 shadow-sm">
+
+            <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,220px)_repeat(3,minmax(0,1fr))]">
+              <div className={`rounded-2xl border px-4 py-3 ${heroPanelClassName}`}>
                 <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Đang đồng hành</p>
                 <p className="mt-1 text-xl font-black text-foreground">{activeBuddy.name}</p>
               </div>
+              <div className={`rounded-2xl border px-4 py-3 ${heroPanelClassName}`}>
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Level người dùng</p>
+                <p className="mt-1 text-xl font-black text-foreground">Lv. {displayUserStats.level}</p>
+              </div>
+              <div className={`rounded-2xl border px-4 py-3 ${heroPanelClassName}`}>
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">XP người dùng</p>
+                <p className="mt-1 text-xl font-black text-foreground">{displayUserStats.xp}/{displayUserStats.nextLevelXp}</p>
+              </div>
+              <div className={`rounded-2xl border px-4 py-3 ${heroPanelClassName}`}>
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Xu</p>
+                <p className="mt-1 text-xl font-black text-foreground">{displayUserStats.coins.toLocaleString("vi-VN")}</p>
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-wrap items-center gap-3">
               <button className="secondary-button" onClick={() => handleProtectedAction("vào Buddy Room", "/buddy-room")} type="button">
                 Vào Buddy Room
               </button>
@@ -102,7 +179,7 @@ export function BuddySelectionPage() {
             </div>
           </div>
 
-          <div className="rounded-[1.75rem] border border-border/70 bg-card/55 p-3 shadow-sm backdrop-blur">
+          <div className={`rounded-[1.75rem] border p-3 backdrop-blur ${heroPanelClassName}`}>
             <Buddy3DStage
               accent={activeBuddy.accent}
               fallbackEmoji={activeBuddy.emoji}

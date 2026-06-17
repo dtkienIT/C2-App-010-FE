@@ -9,10 +9,14 @@ import {
   selectRoomBackground as selectRoomBackgroundApi,
 } from "../../services/buddy3dApi";
 import type { CompanionModel, RoomBackground } from "../../services/types";
+import { resolveCanonicalVRMUrl } from "./config/buddyModels";
 
 const MODEL_STORAGE_KEY = "study-buddy-equipped-room-model";
 const ENABLED_STORAGE_KEY = "study-buddy-3d-enabled";
 const BACKGROUND_STORAGE_KEY = "study-buddy-room-background";
+const API_MODELS_CACHE_KEY = "study-buddy-api-3d-models";
+const API_BACKGROUNDS_CACHE_KEY = "study-buddy-api-3d-backgrounds";
+const API_SETTINGS_CACHE_KEY = "study-buddy-api-3d-settings";
 const NARUTO_MODEL_ID = "naruto-vrm";
 const NARUTO_ONLY_ACTIONS = new Set(["rasengan"]);
 
@@ -30,29 +34,61 @@ function normalizeModelActions<T extends CompanionModel | (typeof companionModel
   };
 }
 
+function normalizeModelVrmUrl<T extends CompanionModel | (typeof companionModels)[number]>(model: T): T {
+  if (!("vrmUrl" in model) || typeof model.vrmUrl !== "string") {
+    return model;
+  }
+
+  return {
+    ...model,
+    vrmUrl: resolveCanonicalVRMUrl(model.vrmUrl, model.id),
+  };
+}
+
+function readCachedJson<T>(storageKey: string): T | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    return raw ? JSON.parse(raw) as T : null;
+  } catch {
+    return null;
+  }
+}
+
 export function useCompanionModelStore() {
+  const hasAuthSession = typeof window !== "undefined" && Boolean(window.localStorage.getItem(AUTH_TOKEN_KEY));
+  const cachedSettings = hasAuthSession ? readCachedJson<{ buddy_3d_enabled?: boolean; equipped_model_id?: string | null; room_background_id?: string | null }>(API_SETTINGS_CACHE_KEY) : null;
   const hasLocalModelOverrideRef = useRef(false);
   const hasLocalBackgroundOverrideRef = useRef(false);
-  const hasPersistedLocalModelRef = useRef(false);
-  const hasPersistedLocalEnabledRef = useRef(false);
+  const hasPersistedLocalModelRef = useRef(Boolean(typeof window !== "undefined" && window.localStorage.getItem(MODEL_STORAGE_KEY)));
+  const hasPersistedLocalEnabledRef = useRef(typeof window !== "undefined" && window.localStorage.getItem(ENABLED_STORAGE_KEY) === "true");
   const [equippedModelId, setEquippedModelId] = useState<CompanionModelId | null>(() => {
     if (typeof window === "undefined") return null;
     const persistedModelId = (window.localStorage.getItem(MODEL_STORAGE_KEY) as CompanionModelId | null) ?? null;
-    hasPersistedLocalModelRef.current = Boolean(persistedModelId);
-    return persistedModelId;
+    return persistedModelId ?? (cachedSettings?.equipped_model_id as CompanionModelId | null) ?? null;
   });
   const [isBuddy3DEnabled, setIsBuddy3DEnabled] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     const persistedEnabled = window.localStorage.getItem(ENABLED_STORAGE_KEY) === "true";
-    hasPersistedLocalEnabledRef.current = persistedEnabled;
-    return persistedEnabled;
+    return persistedEnabled || Boolean(cachedSettings?.buddy_3d_enabled);
   });
   const [selectedBackgroundId, setSelectedBackgroundId] = useState<string>(() => {
     if (typeof window === "undefined") return roomBackgrounds[0]?.id ?? "";
-    return window.localStorage.getItem(BACKGROUND_STORAGE_KEY) ?? roomBackgrounds[0]?.id ?? "";
+    return window.localStorage.getItem(BACKGROUND_STORAGE_KEY) ?? cachedSettings?.room_background_id ?? roomBackgrounds[0]?.id ?? "";
   });
-  const [apiModels, setApiModels] = useState<CompanionModel[]>([]);
-  const [apiBackgrounds, setApiBackgrounds] = useState<RoomBackground[]>([]);
+  const [apiModels, setApiModels] = useState<CompanionModel[]>(() => {
+    if (!hasAuthSession) {
+      return [];
+    }
+
+    const cachedModels = readCachedJson<CompanionModel[]>(API_MODELS_CACHE_KEY) ?? [];
+    return cachedModels.map((model) => normalizeModelVrmUrl(normalizeModelActions(model)));
+  });
+  const [apiBackgrounds, setApiBackgrounds] = useState<RoomBackground[]>(() => (hasAuthSession ? readCachedJson<RoomBackground[]>(API_BACKGROUNDS_CACHE_KEY) ?? [] : []));
+  const [isInitialLoading, setIsInitialLoading] = useState(hasAuthSession);
 
   const refreshStore = useCallback(() => {
     if (typeof window === "undefined" || !window.localStorage.getItem(AUTH_TOKEN_KEY)) {
@@ -63,6 +99,9 @@ export function useCompanionModelStore() {
       .then(([models, backgrounds, settings]) => {
         setApiModels(models);
         setApiBackgrounds(backgrounds);
+        window.localStorage.setItem(API_MODELS_CACHE_KEY, JSON.stringify(models));
+        window.localStorage.setItem(API_BACKGROUNDS_CACHE_KEY, JSON.stringify(backgrounds));
+        window.localStorage.setItem(API_SETTINGS_CACHE_KEY, JSON.stringify(settings));
         if (!hasLocalModelOverrideRef.current && !hasPersistedLocalModelRef.current) {
           setEquippedModelId((settings.equipped_model_id as CompanionModelId | null) ?? null);
         }
@@ -72,8 +111,12 @@ export function useCompanionModelStore() {
         if (!hasLocalBackgroundOverrideRef.current) {
           setSelectedBackgroundId(settings.room_background_id ?? backgrounds[0]?.id ?? "");
         }
+        setIsInitialLoading(false);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        setIsInitialLoading(false);
+        return undefined;
+      });
   }, []);
 
   const mergedCompanionModels = useMemo(() => {
@@ -84,16 +127,16 @@ export function useCompanionModelStore() {
     const apiModelMap = new Map(apiModels.map((model) => [model.id, model]));
     const mergedModels = companionModels.map((model) => {
       const apiModel = apiModelMap.get(model.id);
-      return normalizeModelActions(apiModel ? { ...model, ...apiModel } : model);
+      return normalizeModelVrmUrl(normalizeModelActions(apiModel ? { ...model, ...apiModel } : model));
     });
 
     apiModels.forEach((model) => {
       if (!mergedModels.some((candidate) => candidate.id === model.id)) {
-        mergedModels.push(normalizeModelActions(model));
+        mergedModels.push(normalizeModelVrmUrl(normalizeModelActions(model)));
       }
     });
 
-    return mergedModels.map(normalizeModelActions);
+    return mergedModels.map((model) => normalizeModelVrmUrl(normalizeModelActions(model)));
   }, [apiModels]);
 
   const mergedStoreCompanionModels = useMemo(
@@ -109,6 +152,9 @@ export function useCompanionModelStore() {
         if (cancelled) return;
         setApiModels(models);
         setApiBackgrounds(backgrounds);
+        window.localStorage.setItem(API_MODELS_CACHE_KEY, JSON.stringify(models));
+        window.localStorage.setItem(API_BACKGROUNDS_CACHE_KEY, JSON.stringify(backgrounds));
+        window.localStorage.setItem(API_SETTINGS_CACHE_KEY, JSON.stringify(settings));
 
         if (!hasLocalModelOverrideRef.current && !hasPersistedLocalModelRef.current) {
           setEquippedModelId((settings.equipped_model_id as CompanionModelId | null) ?? null);
@@ -121,8 +167,13 @@ export function useCompanionModelStore() {
         if (!hasLocalBackgroundOverrideRef.current) {
           setSelectedBackgroundId(settings.room_background_id ?? backgrounds[0]?.id ?? "");
         }
+        setIsInitialLoading(false);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (cancelled) return undefined;
+        setIsInitialLoading(false);
+        return undefined;
+      });
 
     return () => {
       cancelled = true;
@@ -174,6 +225,10 @@ export function useCompanionModelStore() {
   );
 
   const equipModel = useCallback((id: CompanionModelId) => {
+    if (equippedModelId === id && isBuddy3DEnabled) {
+      return;
+    }
+
     hasLocalModelOverrideRef.current = true;
     setEquippedModelId(id);
     setIsBuddy3DEnabled(true);
@@ -185,7 +240,7 @@ export function useCompanionModelStore() {
         });
       });
     }
-  }, []);
+  }, [equippedModelId, isBuddy3DEnabled]);
 
   const disableBuddy3D = useCallback(() => {
     hasLocalModelOverrideRef.current = true;
@@ -223,6 +278,7 @@ export function useCompanionModelStore() {
     equippedModel,
     equippedModelId,
     equipModel,
+    isInitialLoading,
     isBuddy3DEnabled,
     roomBackgrounds: apiBackgrounds.length ? apiBackgrounds : roomBackgrounds,
     refreshStore,

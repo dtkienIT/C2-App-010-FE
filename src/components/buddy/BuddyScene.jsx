@@ -67,6 +67,7 @@ function BuddyFloor({ opacity }) {
 
 export function BuddyScene({
   actionNonce,
+  autoEnterOnMount = false,
   backgroundImage = "",
   buddy,
   className = "",
@@ -84,6 +85,7 @@ export function BuddyScene({
     loading: false,
     loadingActions: {},
     progress: 0,
+    requiresContinuousRender: false,
     visibleReady: false,
     warmingUp: false,
   });
@@ -186,6 +188,10 @@ export function BuddyScene({
   }
 
   const coreProgress = Math.max(0, Math.min(100, Math.round((sceneState.progress ?? 0) * 100)));
+  const shouldContinuouslyRender = sceneState.loading
+    || sceneState.warmingUp
+    || !sceneState.visibleReady
+    || sceneState.requiresContinuousRender;
 
   return (
     <div
@@ -240,6 +246,7 @@ export function BuddyScene({
       ) : null}
 
       <Canvas
+        frameloop={shouldContinuouslyRender ? "always" : "demand"}
         dpr={[1, 1.5]}
         gl={{ antialias: false, powerPreference: "high-performance" }}
         orthographic
@@ -270,6 +277,7 @@ export function BuddyScene({
           <BuddyFloor opacity={sceneTheme.floorOpacity} />
           <BuddyVRM
             actionNonce={actionNonce}
+            autoEnterOnMount={autoEnterOnMount}
             currentAction={currentAction}
             entranceSequenceId={entranceSequenceId}
             key={modelId ?? vrmUrl}

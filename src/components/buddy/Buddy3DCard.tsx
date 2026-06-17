@@ -47,6 +47,42 @@ const accentButton: Record<BuddyAccent, string> = {
   violet: "from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600",
 };
 
+const accentFrame: Record<BuddyAccent, string> = {
+  amber: "border-amber-200/80 bg-white/48 dark:border-amber-300/12 dark:bg-slate-950/72",
+  cyan: "border-cyan-200/80 bg-white/48 dark:border-cyan-300/12 dark:bg-slate-950/72",
+  emerald: "border-emerald-200/80 bg-white/48 dark:border-emerald-300/12 dark:bg-slate-950/72",
+  indigo: "border-indigo-200/80 bg-white/48 dark:border-indigo-300/12 dark:bg-slate-950/72",
+  rose: "border-rose-200/80 bg-white/48 dark:border-rose-300/12 dark:bg-slate-950/72",
+  violet: "border-violet-200/80 bg-white/48 dark:border-violet-300/12 dark:bg-slate-950/72",
+};
+
+const accentPanel: Record<BuddyAccent, string> = {
+  amber: "border-amber-200/80 bg-[linear-gradient(180deg,rgba(255,251,235,0.96),rgba(255,255,255,0.94))] dark:border-amber-300/12 dark:bg-slate-950/84",
+  cyan: "border-cyan-200/80 bg-[linear-gradient(180deg,rgba(236,254,255,0.96),rgba(255,255,255,0.94))] dark:border-cyan-300/12 dark:bg-slate-950/84",
+  emerald: "border-emerald-200/80 bg-[linear-gradient(180deg,rgba(236,253,245,0.96),rgba(255,255,255,0.94))] dark:border-emerald-300/12 dark:bg-slate-950/84",
+  indigo: "border-indigo-200/80 bg-[linear-gradient(180deg,rgba(238,242,255,0.96),rgba(255,255,255,0.94))] dark:border-indigo-300/12 dark:bg-slate-950/84",
+  rose: "border-rose-200/80 bg-[linear-gradient(180deg,rgba(255,241,242,0.96),rgba(255,255,255,0.94))] dark:border-rose-300/12 dark:bg-slate-950/84",
+  violet: "border-violet-200/80 bg-[linear-gradient(180deg,rgba(245,243,255,0.96),rgba(255,255,255,0.94))] dark:border-violet-300/12 dark:bg-slate-950/84",
+};
+
+const accentStatCard: Record<BuddyAccent, string> = {
+  amber: "bg-amber-50/88 dark:bg-slate-900/76",
+  cyan: "bg-cyan-50/88 dark:bg-slate-900/76",
+  emerald: "bg-emerald-50/88 dark:bg-slate-900/76",
+  indigo: "bg-indigo-50/88 dark:bg-slate-900/76",
+  rose: "bg-rose-50/88 dark:bg-slate-900/76",
+  violet: "bg-violet-50/88 dark:bg-slate-900/76",
+};
+
+const accentIconShell: Record<BuddyAccent, string> = {
+  amber: "bg-amber-500 text-white",
+  cyan: "bg-cyan-500 text-white",
+  emerald: "bg-emerald-500 text-white",
+  indigo: "bg-indigo-500 text-white",
+  rose: "bg-rose-500 text-white",
+  violet: "bg-violet-500 text-white",
+};
+
 const moodLabel: Record<BuddyMood, string> = {
   calm: "Bình tĩnh",
   focus: "Tập trung",
@@ -97,7 +133,7 @@ export function Buddy3DCard({ buddy, onSelect, selected = false }: Buddy3DCardPr
         </div>
       )}
 
-      <div className="relative z-10 overflow-hidden rounded-[1.7rem] border border-border/70 bg-card/35 pt-1 dark:!border-white/10 dark:!bg-slate-950/72">
+      <div className={`relative z-10 overflow-hidden rounded-[1.7rem] border pt-1 ${accentFrame[buddy.accent]}`}>
         <Buddy3DStage
           accent={buddy.accent}
           className="relative z-10"
@@ -112,7 +148,7 @@ export function Buddy3DCard({ buddy, onSelect, selected = false }: Buddy3DCardPr
         />
       </div>
 
-      <div className="relative z-10 mt-3 flex flex-1 flex-col rounded-[1.4rem] border border-border/80 bg-card/92 p-4 text-card-foreground shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/84">
+      <div className={`relative z-10 mt-3 flex flex-1 flex-col rounded-[1.4rem] border p-4 text-card-foreground shadow-sm backdrop-blur ${accentPanel[buddy.accent]}`}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap gap-1.5">
@@ -125,7 +161,7 @@ export function Buddy3DCard({ buddy, onSelect, selected = false }: Buddy3DCardPr
             <h2 className="mt-3 text-[30px] font-black leading-none text-foreground">{buddy.name}</h2>
             <p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">{buddy.type}</p>
           </div>
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-foreground text-background shadow-sm">
+          <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl shadow-sm ${accentIconShell[buddy.accent]}`}>
             <Sparkles size={17} />
           </div>
         </div>
@@ -134,14 +170,14 @@ export function Buddy3DCard({ buddy, onSelect, selected = false }: Buddy3DCardPr
 
         <div className="mt-4 grid grid-cols-3 gap-2">
           {compareStats.map(({ icon: Icon, label }) => (
-            <div className="rounded-2xl bg-muted/85 px-3 py-2 text-center dark:bg-slate-900/76" key={label}>
+            <div className={`rounded-2xl px-3 py-2 text-center ${accentStatCard[buddy.accent]}`} key={label}>
               <Icon className="mx-auto text-muted-foreground" size={14} />
               <p className="mt-1 text-[11px] font-black uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
             </div>
           ))}
         </div>
 
-        <div className="mt-4 rounded-2xl bg-muted/85 p-3 dark:bg-slate-900/76">
+        <div className={`mt-4 rounded-2xl p-3 ${accentStatCard[buddy.accent]}`}>
           <div className="flex items-center justify-between text-xs font-black text-muted-foreground">
             <span>Độ tương thích</span>
             <span>

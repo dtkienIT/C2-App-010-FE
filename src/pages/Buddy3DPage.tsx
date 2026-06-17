@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useCompanionModelStore } from "../components/buddy/useCompanionModelStore";
 import { Card } from "../components/Card";
+import { UnlockCelebrationModal } from "../features/notifications/UnlockCelebrationModal";
+import { USER_NOTIFICATIONS_UPDATED_EVENT } from "../features/notifications/notificationEvents";
 import { purchaseBuddy3DModel, purchaseRoomBackground } from "../services/buddy3dApi";
 import { apiClient } from "../services/apiClient";
 import type { ApiUser } from "../services/types";
@@ -31,6 +33,12 @@ export function Buddy3DPage() {
   const [coins, setCoins] = useState(0);
   const [busyKey, setBusyKey] = useState("");
   const [shopMessage, setShopMessage] = useState("");
+  const [celebration, setCelebration] = useState<null | {
+    cost: number;
+    itemKind: "background" | "model";
+    itemName: string;
+    targetUrl: string;
+  }>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,18 +68,26 @@ export function Buddy3DPage() {
       const response = await apiClient.get<ApiUser>("/users/me/stats");
       setCoins(response.data.coins ?? 0);
     } catch {
-      // keep local value if stats refresh fails
+      // Giữ lại số xu hiện tại nếu refresh thất bại.
     }
   }
 
   async function handleModelAction(modelId: string, unlocked: boolean) {
     setBusyKey(`model:${modelId}`);
     try {
+      const model = storeCompanionModels.find((item) => item.id === modelId);
       if (!unlocked) {
         await purchaseBuddy3DModel(modelId);
         await refreshStore();
         await refreshCoins();
-        setShopMessage("Đã mở khóa model 3D bằng 1 xu.");
+        setShopMessage("Đã mở khóa model 3D và trừ xu từ tài khoản.");
+        setCelebration({
+          cost: model?.price ?? 0,
+          itemKind: "model",
+          itemName: model?.name ?? "model mới",
+          targetUrl: "/buddy-room",
+        });
+        window.dispatchEvent(new Event(USER_NOTIFICATIONS_UPDATED_EVENT));
       }
       equipModel(modelId);
     } catch (error: any) {
@@ -84,11 +100,19 @@ export function Buddy3DPage() {
   async function handleBackgroundAction(backgroundId: string, unlocked: boolean) {
     setBusyKey(`background:${backgroundId}`);
     try {
+      const background = roomBackgrounds.find((item) => item.id === backgroundId);
       if (!unlocked) {
         await purchaseRoomBackground(backgroundId);
         await refreshStore();
         await refreshCoins();
-        setShopMessage("Đã mở khóa background bằng 1 xu.");
+        setShopMessage("Đã mở khóa background và trừ xu từ tài khoản.");
+        setCelebration({
+          cost: background?.price ?? 0,
+          itemKind: "background",
+          itemName: background?.name ?? "background mới",
+          targetUrl: "/buddy-room",
+        });
+        window.dispatchEvent(new Event(USER_NOTIFICATIONS_UPDATED_EVENT));
       }
       selectBackground(backgroundId);
     } catch (error: any) {
@@ -100,6 +124,15 @@ export function Buddy3DPage() {
 
   return (
     <div className="space-y-8">
+      <UnlockCelebrationModal
+        cost={celebration?.cost ?? 0}
+        itemKind={celebration?.itemKind ?? "model"}
+        itemName={celebration?.itemName ?? ""}
+        onClose={() => setCelebration(null)}
+        open={Boolean(celebration)}
+        targetUrl={celebration?.targetUrl ?? "/buddy-room"}
+      />
+
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-foreground">Cửa hàng</h1>
@@ -155,7 +188,6 @@ export function Buddy3DPage() {
                 </div>
 
                 <h3 className="mt-5 text-xl font-black text-foreground">{model.name}</h3>
-                <p className="mt-2 text-sm font-semibold leading-6 text-muted-foreground">{model.description}</p>
 
                 <button className={`${isActive ? "secondary-button" : "primary-button"} mt-6 w-full`} disabled={busy} onClick={() => void handleModelAction(model.id, model.unlocked)} type="button">
                   {model.unlocked ? (

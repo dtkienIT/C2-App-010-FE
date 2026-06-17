@@ -17,7 +17,7 @@ import {
   Shrink,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { BuddyBreakModePanel } from "../components/buddy/BuddyBreakModePanel";
@@ -26,8 +26,11 @@ import { Buddy3DStage } from "../components/buddy/Buddy3DStage";
 import { MiniQuizPanel } from "../components/buddy/MiniQuizPanel";
 import { clearPendingBuddyReward, readPendingBuddyReward } from "../components/buddy/buddyRewardBridge";
 import { patchActiveQuizPomodoroSession, readActiveQuizPomodoroSession } from "../components/buddy/quizPomodoroBridge";
+<<<<<<< Updated upstream
 import { BuddyRoom } from "../components/buddy/BuddyRoom";
 import { BuddyScene } from "../components/buddy/BuddyScene";
+=======
+>>>>>>> Stashed changes
 import { Live2DBuddyCanvas } from "../components/buddy/Live2DBuddyCanvas";
 import { owner2PrimaryBuddy2DContract } from "../components/buddy/owner2Buddy2DContract";
 import type { BuddyRoomFeedItem } from "../components/buddy/useOwner2BuddyRoomExperience";
@@ -37,7 +40,9 @@ import { useCompanionModelStore } from "../components/buddy/useCompanionModelSto
 import { useOwner2BuddyRoomExperience } from "../components/buddy/useOwner2BuddyRoomExperience";
 import { NotificationPermissionCard } from "../features/notifications/NotificationPermissionCard";
 import { StudyReminderSettings } from "../features/notifications/StudyReminderSettings";
+import { apiClient } from "../services/apiClient";
 import { applyBuddyReward } from "../services/buddiesApi";
+
 import type { QuizAttempt, BreakQuest, BreakQuestResult } from "../services/types";
 import { BreakQuestJourneyPanel } from "../components/buddy/BreakQuestJourneyPanel";
 import { fetchMotivationalLines, type ApiNewsfeedItem } from "../services/newsfeedApi";
@@ -118,6 +123,18 @@ type UnlockedBuddyReward = BuddyRewardBurst & {
 };
 
 const STUDY_REMINDER_UI_HIDDEN_KEY = "study-buddy:buddy-room-study-reminder-hidden";
+const USER_STATS_CACHE_KEY = "study-buddy-user-stats-cache";
+
+function readCachedJson<T>(storageKey: string): T | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    return raw ? JSON.parse(raw) as T : null;
+  } catch {
+    return null;
+  }
+}
 
 function clampStat(value: number) {
   return Math.max(0, Math.min(100, value));
@@ -310,6 +327,7 @@ export function BuddyRoomPage() {
     focus: clampStat(activeBuddy.focus ?? 68),
     motivation: clampStat(activeBuddy.motivation ?? 84),
   });
+  const [userStats, setUserStats] = useState<ApiUser | null>(() => (mode === "authenticated" ? readCachedJson<ApiUser>(USER_STATS_CACHE_KEY) : null));
   const [companionLine, setCompanionLine] = useState<CompanionLine>(defaultCompanionLine);
   const [motivationalLines, setMotivationalLines] = useState<string[]>([]);
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -361,10 +379,53 @@ export function BuddyRoomPage() {
   const routeState = (location.state as { mode?: string; returnTo?: string } | null) ?? null;
   const isPomodoroBreakMode = Boolean(activeQuizSession?.isOnBreak);
   const isQuizLocked = Boolean(activeQuizSession) && !isPomodoroBreakMode;
+  const displayUserStats = {
+    coins: userStats?.coins ?? 0,
+    level: userStats?.level ?? activeBuddy.level,
+    nextLevelXp: userStats?.nextLevelXp ?? activeBuddy.nextLevelXp,
+    xp: userStats?.xp ?? activeBuddy.xp,
+  };
+  const buddyRoomFallback = (
+    <div className="overflow-hidden rounded-[1.85rem] border border-border/70 bg-card/60 p-6 text-sm font-semibold text-muted-foreground">
+      Đang tải Buddy Room 3D...
+    </div>
+  );
 
   useEffect(() => {
     window.localStorage.setItem(STUDY_REMINDER_UI_HIDDEN_KEY, String(isStudyReminderUIHidden));
   }, [isStudyReminderUIHidden]);
+
+  useEffect(() => {
+    if (mode !== "authenticated") {
+      setUserStats(null);
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const refreshUserStats = async () => {
+      try {
+        const response = await apiClient.get<ApiUser>("/users/me/stats");
+        if (cancelled) return;
+        setUserStats(response.data);
+        window.localStorage.setItem(USER_STATS_CACHE_KEY, JSON.stringify(response.data));
+      } catch {
+        if (cancelled) return;
+      }
+    };
+
+    void refreshUserStats();
+
+    const handleStatsUpdated = () => {
+      void refreshUserStats();
+    };
+
+    window.addEventListener(USER_STATS_UPDATED_EVENT, handleStatsUpdated);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(USER_STATS_UPDATED_EVENT, handleStatsUpdated);
+    };
+  }, [mode]);
 
   const markCompanionInteraction = () => {
     setLastCompanionInteractionAt(Date.now());
@@ -746,14 +807,21 @@ export function BuddyRoomPage() {
       <div className="grid gap-3 md:grid-cols-4">
         <section className="rounded-[1.25rem] border border-border/70 bg-card/88 p-4 md:col-span-1">
           <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Buddy level</p>
-          <p className="mt-2 text-2xl font-black text-foreground">Lv. {activeBuddy.level}</p>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <p className="text-2xl font-black text-foreground">Lv. {displayUserStats.level}</p>
+            {mode === "authenticated" ? (
+              <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-amber-700 shadow-sm dark:bg-card/80 dark:text-amber-200">
+                {displayUserStats.coins.toLocaleString("vi-VN")} xu
+              </span>
+            ) : null}
+          </div>
           <p className="mt-2 text-sm font-semibold text-muted-foreground">
-            {activeBuddy.xp}/{activeBuddy.nextLevelXp} XP
+            {displayUserStats.xp}/{displayUserStats.nextLevelXp} XP
           </p>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
             <div
               className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
-              style={{ width: `${Math.min(100, Math.round((activeBuddy.xp / Math.max(activeBuddy.nextLevelXp, 1)) * 100))}%` }}
+              style={{ width: `${Math.min(100, Math.round((displayUserStats.xp / Math.max(displayUserStats.nextLevelXp, 1)) * 100))}%` }}
             />
           </div>
         </section>
@@ -1083,14 +1151,16 @@ export function BuddyRoomPage() {
           {selectedModelType === "3d" ? (
             <div className="space-y-4">
               {activeEquippedModel ? (
-                <BuddyRoom
-                  backgroundImage={roomBackgroundImage}
-                  buddy={activeBuddy}
-                  equippedModel={activeEquippedModel}
-                  externalAction={buddy3DReactionCue as any}
-                  showStatusPanel={false}
-                  vrmUrl={activeEquippedModel.vrmUrl ?? "/vrm-models/vita.vrm"}
-                />
+                <Suspense fallback={buddyRoomFallback}>
+                  <BuddyRoom
+                    backgroundImage={roomBackgroundImage}
+                    buddy={activeBuddy}
+                    equippedModel={activeEquippedModel}
+                    externalAction={buddy3DReactionCue as any}
+                    showStatusPanel={false}
+                    vrmUrl={activeEquippedModel.vrmUrl ?? "/vrm-models/vita.vrm"}
+                  />
+                </Suspense>
               ) : (
                 <div className="overflow-hidden rounded-[1.85rem] border border-border/70 bg-card/60 p-6 text-sm font-semibold text-muted-foreground">
                   Đang hiển thị model 3D và background room 3D.

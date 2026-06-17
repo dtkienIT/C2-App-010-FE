@@ -4,7 +4,7 @@ import { useFrame } from "@react-three/fiber";
 import { Quaternion, Vector3 } from "three";
 import { installHandPropDebug, logHandPropTransform, warnMissingHumanoidBone } from "./utils/debugTransform";
 
-const DEFAULT_PROP_URL = "/props/rasenshuriken.glb";
+const DEFAULT_PROP_URL = "/models/props/rasenshuriken.glb";
 const DEFAULT_OFFSET = [0, 0, 0];
 const DEFAULT_ROTATION = [0, 0, 0];
 const DEFAULT_SCALE = [1, 1, 1];

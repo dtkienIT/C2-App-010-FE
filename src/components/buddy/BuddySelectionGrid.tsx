@@ -27,7 +27,7 @@ export function BuddySelectionGrid({ buddies, onSelect, selectedBuddyId }: Buddy
 
   return (
     <div className="space-y-5 scroll-mt-28 lg:pt-1">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] border border-border/70 bg-card/60 p-3 backdrop-blur dark:bg-slate-900/65">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] border border-white/65 bg-[linear-gradient(135deg,rgba(255,255,255,0.82),rgba(248,250,252,0.92))] p-3 shadow-[0_16px_40px_rgba(15,23,42,0.08)] backdrop-blur dark:border-border/70 dark:bg-slate-900/65">
         <div className="flex flex-wrap gap-2">
           {filters.map((filter) => {
             const active = activeFilter === filter.value;
@@ -35,8 +35,8 @@ export function BuddySelectionGrid({ buddies, onSelect, selectedBuddyId }: Buddy
               <button
                 className={`rounded-full px-4 py-2 text-sm font-black transition ${
                   active
-                    ? "bg-foreground text-background shadow-soft dark:bg-slate-100 dark:text-slate-950"
-                    : "bg-card text-muted-foreground shadow-sm hover:-translate-y-0.5 hover:text-foreground dark:bg-slate-800/80 dark:border-white/10"
+                    ? "bg-slate-900 text-white shadow-soft dark:bg-slate-100 dark:text-slate-950"
+                    : "border border-white/70 bg-white/80 text-slate-600 shadow-sm hover:-translate-y-0.5 hover:text-slate-900 dark:bg-slate-800/80 dark:border-white/10 dark:text-muted-foreground dark:hover:text-foreground"
                 }`}
                 key={filter.value}
                 onClick={() => setActiveFilter(filter.value)}
@@ -47,7 +47,9 @@ export function BuddySelectionGrid({ buddies, onSelect, selectedBuddyId }: Buddy
             );
           })}
         </div>
-        <div className="rounded-full bg-card px-4 py-2 text-sm font-black text-muted-foreground shadow-sm dark:bg-slate-800/80">{visibleBuddies.length} lựa chọn</div>
+        <div className="rounded-full border border-white/70 bg-white/82 px-4 py-2 text-sm font-black text-slate-600 shadow-sm dark:bg-slate-800/80 dark:border-white/10 dark:text-muted-foreground">
+          {visibleBuddies.length} lựa chọn
+        </div>
       </div>
 
       <section className="grid gap-5 overflow-visible pt-6 md:grid-cols-2 xl:grid-cols-3">

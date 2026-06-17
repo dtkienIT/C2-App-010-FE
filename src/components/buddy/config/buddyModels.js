@@ -4,6 +4,42 @@ export const TARGET_HEIGHT = 2;
 export const FORCED_CAMERA_ZOOM = 255;
 export const MIN_CAMERA_ZOOM = FORCED_CAMERA_ZOOM;
 export const MAX_CAMERA_ZOOM = 420;
+export const MODEL_URLS_BY_ID = {
+  "buddy-1-vrm": "/vrm-models/6493143135142452442.vrm",
+  "carlotta-vrm": "/vrm-models/Carlotta.vrm",
+  "changli-vrm": "/vrm-models/Changli.vrm",
+  "naruto-vrm": NARUTO_VRM_URL,
+  "sample-vrm": "/vrm-models/sample.vrm",
+  "vita-vrm": DEFAULT_VRM_URL,
+  "vivi-vrm": "/vrm-models/vivi.vrm",
+  "vrm-8329890252317737768": "/vrm-models/8329890252317737768.vrm",
+  "vrm-8590256991748008892": "/vrm-models/8590256991748008892.vrm",
+  "yinlin-vrm": "/vrm-models/Yinlin.vrm",
+};
+export const VRM_URL_ALIASES = {
+  "/models/6493143135142452442.vrm": MODEL_URLS_BY_ID["buddy-1-vrm"],
+  "/models/8329890252317737768.vrm": MODEL_URLS_BY_ID["vrm-8329890252317737768"],
+  "/models/8590256991748008892.vrm": MODEL_URLS_BY_ID["vrm-8590256991748008892"],
+  "/models/Carlotta.vrm": MODEL_URLS_BY_ID["carlotta-vrm"],
+  "/models/Changli.vrm": MODEL_URLS_BY_ID["changli-vrm"],
+  "/models/Yinlin.vrm": MODEL_URLS_BY_ID["yinlin-vrm"],
+  "/models/naruto.vrm": MODEL_URLS_BY_ID["naruto-vrm"],
+  "/models/sample.vrm": MODEL_URLS_BY_ID["sample-vrm"],
+  "/models/vita.vrm": MODEL_URLS_BY_ID["vita-vrm"],
+  "/models/vivi.vrm": MODEL_URLS_BY_ID["vivi-vrm"],
+};
+
+export function resolveCanonicalVRMUrl(vrmUrl, modelId) {
+  if (modelId && MODEL_URLS_BY_ID[modelId]) {
+    return MODEL_URLS_BY_ID[modelId];
+  }
+
+  if (vrmUrl && VRM_URL_ALIASES[vrmUrl]) {
+    return VRM_URL_ALIASES[vrmUrl];
+  }
+
+  return vrmUrl || DEFAULT_VRM_URL;
+}
 
 export const MODEL_CONFIGS = {
   "/vrm-models/Changli.vrm": {
@@ -56,7 +92,7 @@ export const MODEL_CONFIGS = {
         spinSpeed: 3.4,
         travel: 0.22,
         travelSpeed: 4.4,
-        url: "/props/rasenshuriken.glb",
+        url: "/models/props/rasenshuriken.glb",
         visibleActions: ["rasengan"],
       },
     },

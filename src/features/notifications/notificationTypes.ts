@@ -29,10 +29,17 @@ export type WebPushSubscriptionSummary = {
 export type NotificationPayload = {
   body: string;
   createdAt: string;
-  reminderId: string;
+  expiresAt?: string | null;
+  icon?: string | null;
+  metadata?: {
+    cost?: number;
+    itemKind?: "background" | "buddy" | "model" | string;
+    itemName?: string;
+  };
+  reminderId?: string;
   targetUrl: string;
   title: string;
-  type: "daily_study_reminder";
+  type: "daily_study_reminder" | "shop_unlock";
 };
 
 export type TestNotificationResult = {
