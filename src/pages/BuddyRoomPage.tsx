@@ -26,11 +26,8 @@ import { Buddy3DStage } from "../components/buddy/Buddy3DStage";
 import { MiniQuizPanel } from "../components/buddy/MiniQuizPanel";
 import { clearPendingBuddyReward, readPendingBuddyReward } from "../components/buddy/buddyRewardBridge";
 import { patchActiveQuizPomodoroSession, readActiveQuizPomodoroSession } from "../components/buddy/quizPomodoroBridge";
-<<<<<<< Updated upstream
 import { BuddyRoom } from "../components/buddy/BuddyRoom";
 import { BuddyScene } from "../components/buddy/BuddyScene";
-=======
->>>>>>> Stashed changes
 import { Live2DBuddyCanvas } from "../components/buddy/Live2DBuddyCanvas";
 import { owner2PrimaryBuddy2DContract } from "../components/buddy/owner2Buddy2DContract";
 import type { BuddyRoomFeedItem } from "../components/buddy/useOwner2BuddyRoomExperience";
@@ -42,8 +39,9 @@ import { NotificationPermissionCard } from "../features/notifications/Notificati
 import { StudyReminderSettings } from "../features/notifications/StudyReminderSettings";
 import { apiClient } from "../services/apiClient";
 import { applyBuddyReward } from "../services/buddiesApi";
+import type { ApiUser, QuizAttempt, BreakQuest, BreakQuestResult } from "../services/types";
+import { USER_STATS_UPDATED_EVENT } from "../services/userStatsEvents";
 
-import type { QuizAttempt, BreakQuest, BreakQuestResult } from "../services/types";
 import { BreakQuestJourneyPanel } from "../components/buddy/BreakQuestJourneyPanel";
 import { fetchMotivationalLines, type ApiNewsfeedItem } from "../services/newsfeedApi";
 
