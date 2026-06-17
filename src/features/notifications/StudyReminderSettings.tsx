@@ -1,4 +1,4 @@
-import { ChevronDown, Clock3, Trash2 } from "lucide-react";
+import { ChevronDown, Clock3, Power, Trash2, X } from "lucide-react";
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { getNotificationErrorMessage } from "./notificationApi";
 import { buildFocusModeUrl, showLocalSystemNotification } from "./webPushService";
@@ -7,6 +7,7 @@ import { useStudyReminders, weekDays } from "./useStudyReminders";
 const defaultDays = [1, 2, 3, 4, 5];
 const timeHours = Array.from({ length: 24 }, (_, index) => index.toString().padStart(2, "0"));
 const timeMinutes = Array.from({ length: 60 }, (_, index) => index.toString().padStart(2, "0"));
+const STUDY_REMINDER_COLLAPSED_KEY = "study-buddy:study-reminder-collapsed";
 
 function parseTime(value: string) {
   const [rawHour = "20", rawMinute = "00"] = value.split(":");
@@ -178,7 +179,9 @@ function TimePicker({ onChange, value }: { onChange: (value: string) => void; va
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-muted text-primary transition group-hover:bg-primary/10">
             <Clock3 size={18} />
           </span>
-          <span className="min-w-0 text-lg font-black tracking-normal text-foreground">{hour}:{minute}</span>
+          <span className="min-w-0 text-lg font-black tracking-normal text-foreground">
+            {hour}:{minute}
+          </span>
         </span>
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-muted-foreground transition group-hover:bg-muted group-hover:text-foreground">
           <ChevronDown className={`transition duration-200 ${isOpen ? "rotate-180" : ""}`} size={18} />
@@ -243,6 +246,7 @@ function dispatchInAppReminder(reminderId: string) {
     new CustomEvent("study-buddy:in-app-notification", {
       detail: {
         body: "Buddy đang chờ bạn. Bắt đầu một phiên tập trung ngắn nhé!",
+        reminderId,
         targetUrl,
         title: "Đến giờ học rồi!",
       },
@@ -257,7 +261,7 @@ function dispatchInAppReminder(reminderId: string) {
 }
 
 export function StudyReminderSettings() {
-  const { isLoading, message, reminders, removeReminder, saveReminder, timezone } = useStudyReminders();
+  const { isLoading, message, reminders, removeReminder, saveReminder, setReminderEnabled, timezone } = useStudyReminders();
   const [reminderTime, setReminderTime] = useState("20:00");
   const [selectedDays, setSelectedDays] = useState<number[]>(defaultDays);
   const [selectedTimezone, setSelectedTimezone] = useState(timezone);
@@ -265,6 +269,11 @@ export function StudyReminderSettings() {
   const [editingId, setEditingId] = useState<string | undefined>();
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState("");
+  const [pendingToggleId, setPendingToggleId] = useState<string | null>(null);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(STUDY_REMINDER_COLLAPSED_KEY) === "true";
+  });
 
   useEffect(() => {
     const timers = reminders
@@ -278,10 +287,47 @@ export function StudyReminderSettings() {
     return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [reminders]);
 
-  const dayLabel = useMemo(
-    () => new Map(weekDays.map((day) => [day.id, day.label])),
-    [],
-  );
+  const dayLabel = useMemo(() => new Map(weekDays.map((day) => [day.id, day.label])), []);
+  const enabledReminders = reminders.filter((reminder) => reminder.isEnabled);
+  const statusLabel = isLoading
+    ? "Đang tải lịch học"
+    : enabledReminders.length
+      ? `${enabledReminders.length} lịch đang bật`
+      : reminders.length
+        ? "Tất cả lịch đang tắt"
+        : "Chưa có lịch học";
+
+  useEffect(() => {
+    window.localStorage.setItem(STUDY_REMINDER_COLLAPSED_KEY, String(isCollapsed));
+  }, [isCollapsed]);
+
+  function resetForm() {
+    setEditingId(undefined);
+    setReminderTime("20:00");
+    setSelectedDays(defaultDays);
+    setSelectedTimezone(timezone);
+    setIsEnabled(true);
+    setFormError("");
+  }
+
+  function previewReminder() {
+    const previewReminderId = editingId || reminders.find((reminder) => reminder.isEnabled)?.id || reminders[0]?.id;
+    if (previewReminderId) {
+      dispatchInAppReminder(previewReminderId);
+      return;
+    }
+
+    const targetUrl = buildFocusModeUrl(`preview-${Date.now()}`);
+    window.dispatchEvent(
+      new CustomEvent("study-buddy:in-app-notification", {
+        detail: {
+          body: "Buddy đang chờ bạn. Bắt đầu một phiên tập trung ngắn nhé!",
+          targetUrl,
+          title: "Đến giờ học rồi!",
+        },
+      }),
+    );
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -295,8 +341,7 @@ export function StudyReminderSettings() {
         reminderTime,
         timezone: selectedTimezone,
       });
-      setEditingId(undefined);
-      setIsEnabled(true);
+      resetForm();
     } catch (error) {
       setFormError(getNotificationErrorMessage(error));
     } finally {
@@ -313,89 +358,153 @@ export function StudyReminderSettings() {
 
   return (
     <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
-      <div className="flex items-center gap-3">
-        <div className="grid h-10 w-10 place-items-center rounded-lg bg-muted text-primary">
-          <Clock3 size={19} />
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-muted text-primary">
+            <Clock3 size={19} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Lịch học</p>
+            <h2 className="text-lg font-black text-foreground">Nhắc vào giờ học</h2>
+            <p className="mt-1 text-xs font-semibold text-muted-foreground">{statusLabel}</p>
+          </div>
         </div>
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Lịch học</p>
-          <h2 className="text-lg font-black text-foreground">Nhắc vào giờ học</h2>
-        </div>
+        <button
+          aria-expanded={!isCollapsed}
+          aria-label={isCollapsed ? "Mở rộng lịch học" : "Thu gọn lịch học"}
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition hover:bg-muted hover:text-foreground"
+          onClick={() => setIsCollapsed((current) => !current)}
+          type="button"
+        >
+          <ChevronDown className={`transition duration-200 ${isCollapsed ? "-rotate-90" : "rotate-0"}`} size={18} />
+        </button>
       </div>
 
-      <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
-        <div className="grid gap-3 sm:grid-cols-[160px_1fr]">
-          <label className="text-sm font-black text-foreground">
-            Giờ
-            <TimePicker onChange={setReminderTime} value={reminderTime} />
-          </label>
-          <label className="text-sm font-black text-foreground">
-            Timezone
-            <input className="auth-input mt-2 rounded-xl py-2.5" onChange={(event) => setSelectedTimezone(event.target.value)} value={selectedTimezone} />
-          </label>
-        </div>
+      <div
+        className={`overflow-hidden transition-all duration-300 ease-out ${
+          isCollapsed ? "mt-0 max-h-0 opacity-0 pointer-events-none" : "mt-4 max-h-[2000px] opacity-100"
+        }`}
+      >
+        {!isCollapsed ? (
+          <>
+            <div className="flex flex-wrap gap-2">
+              <button
+                className="rounded-xl border border-border bg-card px-4 py-2 text-sm font-black text-foreground transition hover:bg-muted"
+                onClick={previewReminder}
+                type="button"
+              >
+                Xem thử nhắc học
+              </button>
+            </div>
 
-        <div>
-          <p className="text-sm font-black text-foreground">Ngày trong tuần</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {weekDays.map((day) => {
-              const active = selectedDays.includes(day.id);
-              return (
-                <button
-                  className={`rounded-lg border px-3 py-2 text-xs font-black transition ${
-                    active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted text-muted-foreground hover:text-foreground"
-                  }`}
-                  key={day.id}
-                  onClick={() => toggleDay(day.id)}
-                  type="button"
-                >
-                  {day.label}
+            <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
+              <div className="grid gap-3 sm:grid-cols-[160px_1fr]">
+                <label className="text-sm font-black text-foreground">
+                  Giờ
+                  <TimePicker onChange={setReminderTime} value={reminderTime} />
+                </label>
+                <label className="text-sm font-black text-foreground">
+                  Timezone
+                  <input className="auth-input mt-2 rounded-xl py-2.5" onChange={(event) => setSelectedTimezone(event.target.value)} value={selectedTimezone} />
+                </label>
+              </div>
+
+              <div>
+                <p className="text-sm font-black text-foreground">Ngày trong tuần</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {weekDays.map((day) => {
+                    const active = selectedDays.includes(day.id);
+                    return (
+                      <button
+                        className={`rounded-lg border px-3 py-2 text-xs font-black transition ${
+                          active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted text-muted-foreground hover:text-foreground"
+                        }`}
+                        key={day.id}
+                        onClick={() => toggleDay(day.id)}
+                        type="button"
+                      >
+                        {day.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <label className="flex items-center gap-3 text-sm font-bold text-foreground">
+                <input checked={isEnabled} className="h-4 w-4 accent-violet-600" onChange={(event) => setIsEnabled(event.target.checked)} type="checkbox" />
+                Bật lịch nhắc này
+              </label>
+
+              {message ? <p className="rounded-lg bg-muted px-3 py-2 text-sm font-bold text-muted-foreground">{message}</p> : null}
+
+              <div className="flex flex-wrap gap-2">
+                <button className="primary-button rounded-xl px-4 py-2 text-sm" disabled={isSaving || !selectedDays.length} type="submit">
+                  {isSaving ? "Đang lưu..." : editingId ? "Cập nhật lịch" : "Lưu lịch nhắc"}
                 </button>
-              );
-            })}
-          </div>
-        </div>
+                {editingId ? (
+                  <button
+                    className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-black text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                    onClick={resetForm}
+                    type="button"
+                  >
+                    <X size={16} />
+                    Đóng
+                  </button>
+                ) : null}
+              </div>
+              {formError ? <p className="text-xs font-bold text-muted-foreground">{formError}</p> : null}
+            </form>
 
-        <label className="flex items-center gap-3 text-sm font-bold text-foreground">
-          <input checked={isEnabled} className="h-4 w-4 accent-violet-600" onChange={(event) => setIsEnabled(event.target.checked)} type="checkbox" />
-          Bật lịch nhắc này
-        </label>
-
-        {message ? <p className="rounded-lg bg-muted px-3 py-2 text-sm font-bold text-muted-foreground">{message}</p> : null}
-
-        <div className="flex flex-wrap gap-2">
-          <button className="primary-button rounded-xl px-4 py-2 text-sm" disabled={isSaving || !selectedDays.length} type="submit">
-            {isSaving ? "Đang lưu..." : editingId ? "Cập nhật lịch" : "Lưu lịch nhắc"}
-          </button>
-        </div>
-        {formError ? <p className="text-xs font-bold text-muted-foreground">{formError}</p> : null}
-      </form>
-
-      <div className="mt-5 space-y-2">
-        {isLoading ? <p className="text-sm font-semibold text-muted-foreground">Đang tải lịch...</p> : null}
-        {reminders.map((reminder) => (
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/50 px-3 py-3" key={reminder.id}>
-            <button
-              className="min-w-0 flex-1 text-left"
-              onClick={() => {
-                setEditingId(reminder.id);
-                setReminderTime(reminder.reminderTime);
-                setSelectedDays(reminder.daysOfWeek);
-                setSelectedTimezone(reminder.timezone);
-                setIsEnabled(reminder.isEnabled);
-              }}
-              type="button"
-            >
-              <p className="font-black text-foreground">{reminder.reminderTime}</p>
-              <p className="mt-1 truncate text-xs font-semibold text-muted-foreground">
-                {reminder.daysOfWeek.map((day) => dayLabel.get(day)).join(", ")} · {reminder.isEnabled ? "Đang bật" : "Đã tắt"}
-              </p>
-            </button>
-            <button className="grid h-9 w-9 place-items-center rounded-lg bg-card text-rose-600" onClick={() => removeReminder(reminder.id)} type="button">
-              <Trash2 size={16} />
-            </button>
-          </div>
-        ))}
+            <div className="mt-5 space-y-2">
+              {isLoading ? <p className="text-sm font-semibold text-muted-foreground">Đang tải lịch...</p> : null}
+              {reminders.map((reminder) => (
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/50 px-3 py-3" key={reminder.id}>
+                  <button
+                    className="min-w-0 flex-1 text-left"
+                    onClick={() => {
+                      setEditingId(reminder.id);
+                      setReminderTime(reminder.reminderTime);
+                      setSelectedDays(reminder.daysOfWeek);
+                      setSelectedTimezone(reminder.timezone);
+                      setIsEnabled(reminder.isEnabled);
+                      setFormError("");
+                    }}
+                    type="button"
+                  >
+                    <p className="font-black text-foreground">{reminder.reminderTime}</p>
+                    <p className="mt-1 truncate text-xs font-semibold text-muted-foreground">
+                      {reminder.daysOfWeek.map((day) => dayLabel.get(day)).join(", ")} · {reminder.isEnabled ? "Đang bật" : "Đã tắt"}
+                    </p>
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="inline-flex h-9 items-center gap-1 rounded-lg border border-border bg-card px-3 text-xs font-black text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={pendingToggleId === reminder.id}
+                      onClick={async () => {
+                        try {
+                          setPendingToggleId(reminder.id);
+                          await setReminderEnabled(reminder.id, !reminder.isEnabled);
+                          if (editingId === reminder.id) {
+                            setIsEnabled(!reminder.isEnabled);
+                          }
+                        } finally {
+                          setPendingToggleId((current) => (current === reminder.id ? null : current));
+                        }
+                      }}
+                      type="button"
+                    >
+                      <Power size={14} />
+                      {pendingToggleId === reminder.id ? "Đang lưu..." : reminder.isEnabled ? "Tắt" : "Bật"}
+                    </button>
+                    <button className="grid h-9 w-9 place-items-center rounded-lg bg-card text-rose-600" onClick={() => removeReminder(reminder.id)} type="button">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : null}
       </div>
     </section>
   );

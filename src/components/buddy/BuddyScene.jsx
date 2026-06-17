@@ -1,6 +1,7 @@
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Environment, OrbitControls } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
+import { PCFShadowMap } from "three";
 import { Buddy3DStage } from "./Buddy3DStage";
 import { BuddyVRM } from "./BuddyVRM";
 import { DEFAULT_VRM_URL, FORCED_CAMERA_ZOOM, MAX_CAMERA_ZOOM as CONFIG_MAX_CAMERA_ZOOM, MODEL_CONFIGS } from "./config/buddyModels";
@@ -244,7 +245,7 @@ export function BuddyScene({
         orthographic
         camera={{ position: [0, 1.15, 10], zoom: DEFAULT_CAMERA_ZOOM }}
         resize={{ debounce: { resize: 80, scroll: 40 } }}
-        shadows
+        shadows={{ type: PCFShadowMap }}
       >
         <SceneExposure exposure={sceneTheme.exposure} />
         <ambientLight intensity={modelConfig.ambientIntensity * sceneTheme.ambientBoost} />

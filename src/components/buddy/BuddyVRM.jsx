@@ -19,6 +19,13 @@ const COMMON_ACTIONS = ["pose", "relax", "thinking", "lookAround", "greeting", "
 const RARE_ACTIONS = new Set(["rasengan", "spin", "shoot", "squat", "jump", "angry", "surprised"]);
 const ACTION_CROSSFADE_SECONDS = 0.32;
 const ACTION_STOP_DELAY_MS = 420;
+const ENABLE_BUDDY_DEBUG = false;
+
+function debugBuddy(...args) {
+  if (ENABLE_BUDDY_DEBUG) {
+    console.debug(...args);
+  }
+}
 
 function scheduleBackgroundTask(task, delay = 0) {
   const timeoutId = window.setTimeout(() => {
@@ -296,7 +303,7 @@ function softenHairMaterial(material, context = {}) {
   });
 
   if (changedCount > 0) {
-    console.debug("[BuddyVRM] softened hair materials", {
+    debugBuddy("[BuddyVRM] softened hair materials", {
       materialCount: changedCount,
       meshName: context.meshName,
       modelId: context.modelId,
@@ -342,7 +349,7 @@ function tuneVRMModelMaterials(vrm, context = {}) {
     node.receiveShadow = true;
   });
 
-  console.debug("[BuddyVRM] material tuning summary", {
+  debugBuddy("[BuddyVRM] material tuning summary", {
     hairMaterialCount,
     materialCount,
     meshCount,
@@ -461,7 +468,7 @@ function VRMAvatar({
       sceneToRemove.parent.remove(sceneToRemove);
     }
 
-    console.debug("[BuddyVRM] cleared previous model runtime", {
+    debugBuddy("[BuddyVRM] cleared previous model runtime", {
       clearedModelId: modelId ?? vrmUrl,
       hadMixer: Boolean(mixer),
       sceneDetached: Boolean(sceneToRemove),
@@ -499,13 +506,20 @@ function VRMAvatar({
       vrmUrl,
     });
 
-    let frameId = 0;
+    let idleCallbackId = 0;
+    let timeoutId = 0;
 
-    frameId = requestAnimationFrame(() => {
+    const runInitialFit = () => {
       vrm.update(0);
       vrm.springBoneManager?.reset?.();
       setFit(getStableModelFit(vrm, modelConfig));
-    });
+    };
+
+    if (typeof window.requestIdleCallback === "function") {
+      idleCallbackId = window.requestIdleCallback(runInitialFit, { timeout: 120 });
+    } else {
+      timeoutId = window.setTimeout(runInitialFit, 0);
+    }
 
     vrm.scene.userData.isBuddyModelRoot = true;
     vrm.scene.userData.renderedModelId = modelId ?? vrmUrl;
@@ -530,7 +544,7 @@ function VRMAvatar({
     const mixer = new AnimationMixer(vrm.scene);
     mixerRef.current = mixer;
 
-    console.debug("[BuddyVRM] mounted model", {
+    debugBuddy("[BuddyVRM] mounted model", {
       renderedModelId: modelId ?? vrmUrl,
       sceneName: vrm.scene.name || "unnamed-scene",
       vrmUrl,
@@ -548,7 +562,12 @@ function VRMAvatar({
     mixer.addEventListener("finished", handleFinished);
 
     return () => {
-      cancelAnimationFrame(frameId);
+      if (idleCallbackId) {
+        window.cancelIdleCallback?.(idleCallbackId);
+      }
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
       mixer.removeEventListener("finished", handleFinished);
       resetRuntimeState(vrm.scene);
     };
@@ -628,7 +647,7 @@ function VRMAvatar({
       activeActionRef.current = action;
       currentSourceRef.current = "clip";
       proceduralRef.current = { action: nextAction, elapsed: 0 };
-      console.debug("[BuddyVRM] action switched", {
+      debugBuddy("[BuddyVRM] action switched", {
         activeActionCount: Array.from(createdActionsRef.current.values()).filter((candidate) => candidate?.enabled && candidate.weight > 0).length,
         action: nextAction,
         modelId,
@@ -656,7 +675,7 @@ function VRMAvatar({
       activeActionRef.current = idleAction;
       currentSourceRef.current = "clip";
       proceduralRef.current = { action: DEFAULT_ACTION, elapsed: 0 };
-      console.debug("[BuddyVRM] action switched", {
+      debugBuddy("[BuddyVRM] action switched", {
         activeActionCount: Array.from(createdActionsRef.current.values()).filter((candidate) => candidate?.enabled && candidate.weight > 0).length,
         action: DEFAULT_ACTION,
         modelId,
@@ -672,7 +691,7 @@ function VRMAvatar({
     activeActionRef.current = null;
     currentSourceRef.current = proceduralEnabled ? "procedural" : "idle";
     proceduralRef.current = { action: nextAction, elapsed: 0 };
-    console.debug("[BuddyVRM] action switched", {
+    debugBuddy("[BuddyVRM] action switched", {
       activeActionCount: 0,
       action: nextAction,
       modelId,
@@ -948,7 +967,7 @@ function VRMAvatar({
       }
     });
 
-    console.debug("[BuddyVRM] active model check", {
+    debugBuddy("[BuddyVRM] active model check", {
       activeModelCount: activeScenes.length,
       activeModelIds: activeScenes,
       renderedModelId: modelId ?? vrmUrl,
@@ -1164,7 +1183,7 @@ export function BuddyVRM({
               visibleReady: completed > 0,
             };
           });
-          console.debug("[BuddyVRM] core action ready", {
+          debugBuddy("[BuddyVRM] core action ready", {
             action: actionName,
             modelId,
             vrmUrl,
@@ -1195,7 +1214,7 @@ export function BuddyVRM({
           await preloadAction(actionName, vrm, sessionId);
           if (cancelled || sessionId !== modelSessionRef.current) return;
 
-          console.debug("[BuddyVRM] deferred action cached", {
+          debugBuddy("[BuddyVRM] deferred action cached", {
             action: actionName,
             modelId,
             vrmUrl,

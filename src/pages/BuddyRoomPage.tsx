@@ -112,6 +112,8 @@ type UnlockedBuddyReward = BuddyRewardBurst & {
   detail: string;
 };
 
+const STUDY_REMINDER_UI_HIDDEN_KEY = "study-buddy:buddy-room-study-reminder-hidden";
+
 function clampStat(value: number) {
   return Math.max(0, Math.min(100, value));
 }
@@ -309,6 +311,10 @@ export function BuddyRoomPage() {
   const [lastCompanionInteractionAt, setLastCompanionInteractionAt] = useState(() => Date.now());
   const [breakReturnHintShown, setBreakReturnHintShown] = useState(false);
   const [activeQuizSession, setActiveQuizSession] = useState(() => readActiveQuizPomodoroSession());
+  const [isStudyReminderUIHidden, setIsStudyReminderUIHidden] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(STUDY_REMINDER_UI_HIDDEN_KEY) === "true";
+  });
   const rewardSequenceRef = useRef(0);
 
   const activeChasamSkin = chasamSkins.find((skin) => skin.id === preferences.chasamSkinId) ?? chasamSkins[0];
@@ -339,6 +345,10 @@ export function BuddyRoomPage() {
   const routeState = (location.state as { mode?: string; returnTo?: string } | null) ?? null;
   const isPomodoroBreakMode = Boolean(activeQuizSession?.isOnBreak);
   const isQuizLocked = Boolean(activeQuizSession) && !isPomodoroBreakMode;
+
+  useEffect(() => {
+    window.localStorage.setItem(STUDY_REMINDER_UI_HIDDEN_KEY, String(isStudyReminderUIHidden));
+  }, [isStudyReminderUIHidden]);
 
   const markCompanionInteraction = () => {
     setLastCompanionInteractionAt(Date.now());
@@ -955,10 +965,31 @@ export function BuddyRoomPage() {
 
         <div className="space-y-4">
           {mode === "authenticated" ? (
-            <>
-              <NotificationPermissionCard />
-              <StudyReminderSettings />
-            </>
+            isStudyReminderUIHidden ? (
+              <div className="flex justify-end">
+                <button
+                  className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-black text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                  onClick={() => setIsStudyReminderUIHidden(false)}
+                  type="button"
+                >
+                  Hiện lịch học
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-end">
+                  <button
+                    className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-black text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                    onClick={() => setIsStudyReminderUIHidden(true)}
+                    type="button"
+                  >
+                    Ẩn lịch học
+                  </button>
+                </div>
+                <NotificationPermissionCard />
+                <StudyReminderSettings />
+              </>
+            )
           ) : (
             <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
               <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Lịch học</p>

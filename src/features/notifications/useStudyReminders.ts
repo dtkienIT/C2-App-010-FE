@@ -64,9 +64,25 @@ export function useStudyReminders() {
         : await createStudyReminder(body);
       setReminders((current) => [saved, ...current.filter((item) => item.id !== saved.id)]);
       setMessage("Đã lưu lịch nhắc học.");
+      return saved;
     },
     [],
   );
+
+  const setReminderEnabled = useCallback(async (reminderId: string, isEnabled: boolean) => {
+    try {
+      if (isEnabled) {
+        await ensureCurrentPushSubscription();
+      }
+      const saved = await updateStudyReminder(reminderId, { is_enabled: isEnabled });
+      setReminders((current) => current.map((item) => (item.id === reminderId ? saved : item)));
+      setMessage(isEnabled ? "Đã bật lịch nhắc học." : "Đã tắt lịch nhắc học.");
+      return saved;
+    } catch (error) {
+      setMessage(getNotificationErrorMessage(error));
+      throw error;
+    }
+  }, []);
 
   const removeReminder = useCallback(async (reminderId: string) => {
     try {
@@ -93,5 +109,15 @@ export function useStudyReminders() {
     setMessage("Đã gửi thông báo thử.");
   }, []);
 
-  return { isLoading, message, refresh, reminders, removeReminder, saveReminder, timezone, triggerTest };
+  return {
+    isLoading,
+    message,
+    refresh,
+    reminders,
+    removeReminder,
+    saveReminder,
+    setReminderEnabled,
+    timezone,
+    triggerTest,
+  };
 }
