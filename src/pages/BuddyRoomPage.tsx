@@ -13,6 +13,8 @@ import {
   Trophy,
   X,
   Zap,
+  Expand,
+  Shrink,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -25,6 +27,7 @@ import { MiniQuizPanel } from "../components/buddy/MiniQuizPanel";
 import { clearPendingBuddyReward, readPendingBuddyReward } from "../components/buddy/buddyRewardBridge";
 import { patchActiveQuizPomodoroSession, readActiveQuizPomodoroSession } from "../components/buddy/quizPomodoroBridge";
 import { BuddyRoom } from "../components/buddy/BuddyRoom";
+import { BuddyScene } from "../components/buddy/BuddyScene";
 import { Live2DBuddyCanvas } from "../components/buddy/Live2DBuddyCanvas";
 import { owner2PrimaryBuddy2DContract } from "../components/buddy/owner2Buddy2DContract";
 import type { BuddyRoomFeedItem } from "../components/buddy/useOwner2BuddyRoomExperience";
@@ -35,7 +38,9 @@ import { useOwner2BuddyRoomExperience } from "../components/buddy/useOwner2Buddy
 import { NotificationPermissionCard } from "../features/notifications/NotificationPermissionCard";
 import { StudyReminderSettings } from "../features/notifications/StudyReminderSettings";
 import { applyBuddyReward } from "../services/buddiesApi";
-import type { QuizAttempt } from "../services/types";
+import type { QuizAttempt, BreakQuest, BreakQuestResult } from "../services/types";
+import { BreakQuestJourneyPanel } from "../components/buddy/BreakQuestJourneyPanel";
+import { fetchMotivationalLines, type ApiNewsfeedItem } from "../services/newsfeedApi";
 
 const chasamSkins = [
   {
@@ -306,11 +311,22 @@ export function BuddyRoomPage() {
     motivation: clampStat(activeBuddy.motivation ?? 84),
   });
   const [companionLine, setCompanionLine] = useState<CompanionLine>(defaultCompanionLine);
+  const [motivationalLines, setMotivationalLines] = useState<string[]>([]);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [breakFlowStage, setBreakFlowStage] = useState<"idle" | "news" | "vocab" | "quiz" | "result">("idle");
+  const [activeBreakArticle, setActiveBreakArticle] = useState<ApiNewsfeedItem | null>(null);
+  const [generatedBreakQuest, setGeneratedBreakQuest] = useState<BreakQuest | null>(null);
+  const [isBreakQuestLoading, setIsBreakQuestLoading] = useState(false);
+  const [breakQuestError, setBreakQuestError] = useState("");
+  const [breakQuestAnswers, setBreakQuestAnswers] = useState<Record<string, number>>({});
+  const [breakQuestResult, setBreakQuestResult] = useState<BreakQuestResult | null>(null);
+  const [isNewsHidden, setIsNewsHidden] = useState(false);
   const [rewardBurst, setRewardBurst] = useState<BuddyRewardBurst | null>(null);
   const [unlockedRewards, setUnlockedRewards] = useState<UnlockedBuddyReward[]>([]);
   const [lastCompanionInteractionAt, setLastCompanionInteractionAt] = useState(() => Date.now());
   const [breakReturnHintShown, setBreakReturnHintShown] = useState(false);
   const [activeQuizSession, setActiveQuizSession] = useState(() => readActiveQuizPomodoroSession());
+  const [isFullScreenNewsHidden, setIsFullScreenNewsHidden] = useState(false);
   const [isStudyReminderUIHidden, setIsStudyReminderUIHidden] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.localStorage.getItem(STUDY_REMINDER_UI_HIDDEN_KEY) === "true";
@@ -446,36 +462,136 @@ export function BuddyRoomPage() {
     }
     playBuddyReward(rewardAction, "Mini quiz");
   };
+  useEffect(() => {
+    fetchMotivationalLines().then(lines => {
+      if (lines.length > 0) setMotivationalLines(lines);
+    }).catch(e => console.error("Failed to load motivational lines", e));
+  }, []);
+
+  useEffect(() => {
+    if (motivationalLines.length === 0) return;
+    const intervalId = window.setInterval(() => {
+      if (Date.now() - lastCompanionInteractionAt < 15000) return;
+      const line = motivationalLines[Math.floor(Math.random() * motivationalLines.length)];
+      setCompanionLine({
+        cta: "LLM Note",
+        source: "motivation",
+        text: line,
+        tone: "focus"
+      });
+    }, 8000);
+    return () => window.clearInterval(intervalId);
+  }, [motivationalLines, lastCompanionInteractionAt]);
+
+  const resetBreakQuestFlow = () => {
+    setBreakFlowStage("idle");
+    setActiveBreakArticle(null);
+    setGeneratedBreakQuest(null);
+    setBreakQuestError("");
+    setBreakQuestAnswers({});
+    setBreakQuestResult(null);
+    setIsBreakQuestLoading(false);
+  };
+
+  const handleOpenNewsQuest = async (article: ApiNewsfeedItem) => {
+    if (isQuizLocked) {
+      nudgeQuizLock();
+      return;
+    }
+    resetBreakQuestFlow();
+    setActiveBreakArticle(article);
+    setBreakFlowStage("news");
+    setIsBreakQuestLoading(true);
+    setLastCompanionInteractionAt(Date.now());
+    
+    setCompanionLine({
+      cta: "Đang tạo Break Quest...",
+      source: "break-quest",
+      text: "Đợi xíu, mình đang đọc và tạo quiz từ bài báo này cho bạn nha...",
+      tone: "focus"
+    });
+
+    try {
+      import("../services/newsfeedApi").then(({ generateBreakQuest }) => {
+        generateBreakQuest(article).then(quest => {
+          setGeneratedBreakQuest(quest);
+          setCompanionLine({
+            cta: "Break Quest Ready",
+            source: "break-quest",
+            text: quest.companionLines?.[0] ?? "Xong rồi! Bạn xem tóm tắt và làm thử quiz xem sao nhé.",
+            tone: "gentle"
+          });
+          setIsBreakQuestLoading(false);
+        }).catch(err => {
+          console.error(err);
+          setBreakQuestError("Không tạo được Break Quest từ bài news này. Bạn có thể bấm thử lại để dùng bài dự phòng.");
+          setCompanionLine({
+            cta: "Lỗi tạo Quest",
+            source: "error",
+            text: "Hic, bài này khó hiểu quá mình làm không kịp. Chắc xài đỡ bài tiếng Việt này nhen.",
+            tone: "care"
+          });
+          setIsBreakQuestLoading(false);
+        });
+      });
+    } catch (err) {
+      setIsBreakQuestLoading(false);
+    }
+  };
+
+  const handleAnswerSelect = (questionId: string, optionIndex: number) => {
+    setBreakQuestAnswers(prev => ({ ...prev, [questionId]: optionIndex }));
+    setLastCompanionInteractionAt(Date.now());
+  };
+
+  const handleSubmitBreakQuest = () => {
+    if (!generatedBreakQuest) return;
+    let score = 0;
+    generatedBreakQuest.questions.forEach(q => {
+      if (breakQuestAnswers[q.id] === q.correctIndex) score++;
+    });
+    setBreakQuestResult({ correctCount: score, totalQuestions: generatedBreakQuest.questions.length });
+    setBreakFlowStage("result");
+    setLastCompanionInteractionAt(Date.now());
+    const isPerfect = score === generatedBreakQuest.questions.length;
+    setCompanionLine({
+      cta: "Quest Score",
+      source: "break-quest",
+      text: isPerfect ? "Wow! Bạn đúng hết luôn kìa, đỉnh quá!" : `Bạn đúng ${score}/${generatedBreakQuest.questions.length} câu. Tiếp tục cố gắng nhé!`,
+      tone: isPerfect ? "celebrate" : "gentle"
+    });
+  };
+
+  const handleCloseBreakQuest = () => {
+    resetBreakQuestFlow();
+    setLastCompanionInteractionAt(Date.now());
+  };
+
+  const handleNewsfeedQuestAction = (item: BuddyRoomFeedItem) => {
+    const article: ApiNewsfeedItem = {
+      id: item.id,
+      title: item.title,
+      summary: item.summary,
+      source: item.source,
+      publishedAt: new Date().toISOString(),
+      imageUrl: item.imageUrl,
+    };
+    handleOpenNewsQuest(article);
+  };
+
   const handleBuddyTap = () => {
     if (isQuizLocked) {
       nudgeQuizLock();
       return;
     }
-    markCompanionInteraction();
-    setDemoStats((current) => applyStatDelta(current, { motivation: 4 }));
     setCompanionLine({
-      cta: "Mo micro quest",
-      source: "Buddy tap",
-      text: "Ban cham minh roi do. Lam mot micro quest nho nhe khong? Xong minh tang mot reaction cute.",
+      cta: "Buddy tapped",
+      source: "interaction",
+      text: "Bạn chạm mình rồi đó. Hãy mở Full Screen để nhận Break Quest nhé!",
       tone: "gentle",
     });
     setActiveExpressionId("niyari");
     setMotionNonce((value) => value + 1);
-  };
-
-  const handleNewsfeedQuestAction = (item: BuddyRoomFeedItem) => {
-    if (isQuizLocked) {
-      nudgeQuizLock();
-      return;
-    }
-    markCompanionInteraction();
-    setDemoStats((current) => applyStatDelta(current, { focus: 4, motivation: 2 }));
-    setCompanionLine({
-      cta: "Doc xong thi bao Buddy",
-      source: "News Quest",
-      text: `Ok, lay 1 y chinh tu "${item.title}". Neu xong quest nay, toi se bieu dien cho ban xem.`,
-      tone: "focus",
-    });
   };
 
   const handleSkinSelect = (skin: (typeof chasamSkins)[number]) => {
@@ -693,6 +809,189 @@ export function BuddyRoomPage() {
     </>
   );
 
+
+
+  if (isFullScreen) {
+    if (selectedModelType === "3d") {
+      return (
+        <div className="buddy-room-scene fixed inset-0 z-[100] h-[100dvh] w-screen overflow-hidden bg-slate-950">
+          <button
+            className="absolute top-4 right-4 z-[110] rounded-xl border border-border bg-card p-2 text-muted-foreground shadow-md hover:text-foreground"
+            onClick={() => setIsFullScreen(false)}
+          >
+            <Shrink size={20} />
+          </button>
+
+          <div className={`absolute inset-y-0 left-0 transition-all duration-300 ease-out ${isFullScreenNewsHidden ? "w-full" : "w-full md:w-[68%]"}`}>
+            <BuddyScene
+              actionNonce={0}
+              backgroundImage={roomBackgroundImage}
+              buddy={activeBuddy}
+              className="!h-full !w-full !rounded-none !border-none"
+              currentAction="idle"
+              equippedModel={activeEquippedModel}
+              modelId={activeBuddy.id}
+              onActionFinished={() => {}}
+              onReady={() => {}}
+              onStateChange={() => {}}
+              vrmUrl={activeEquippedModel?.vrmUrl ?? "/vrm-models/vita.vrm"}
+            />
+          </div>
+
+          {isFullScreenNewsHidden ? (
+            <button
+              className="absolute right-8 top-20 z-50 inline-flex items-center gap-2 rounded-2xl border border-border/80 bg-card/90 p-3 text-sm font-black text-foreground shadow-lg backdrop-blur hover:bg-muted"
+              onClick={() => setIsFullScreenNewsHidden(false)}
+              type="button"
+            >
+              <BookOpenCheck size={18} />
+              Mở News / Quest
+            </button>
+          ) : (
+            <aside className="room-news-panel custom-scrollbar">
+              <div className="mb-4 flex justify-end">
+                <button
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-200/50 text-slate-600 transition hover:bg-slate-300/80 hover:text-slate-900"
+                  onClick={() => setIsFullScreenNewsHidden(true)}
+                  type="button"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <BreakQuestJourneyPanel
+                activeArticle={activeBreakArticle}
+                activeStage={breakFlowStage}
+                errorMessage={breakQuestError}
+                isLoading={isBreakQuestLoading}
+                onOpenNewsQuest={() => {}}
+                onRestart={handleCloseBreakQuest}
+                onRevealQuiz={() => setBreakFlowStage("quiz")}
+                onRevealVocab={() => setBreakFlowStage("vocab")}
+                onSelectAnswer={handleAnswerSelect}
+                onSubmitQuiz={handleSubmitBreakQuest}
+                quest={generatedBreakQuest}
+                quizResult={breakQuestResult}
+                selectedAnswers={breakQuestAnswers}
+              />
+              {!generatedBreakQuest && !isBreakQuestLoading && (
+                <BuddyNewsfeedPanel
+                  feedItems={owner2Experience.feedItems}
+                  feedState={owner2Experience.feedState}
+                  maxItems={owner2Experience.newsfeedLayout.maxItems}
+                  note={owner2Experience.newsfeedLayout.note}
+                  onQuestAction={handleNewsfeedQuestAction}
+                />
+              )}
+            </aside>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className={`buddy-room-scene fixed inset-0 z-[100] h-[100dvh] w-screen overflow-hidden bg-background/95 backdrop-blur-xl ${chasamRoomTheme.backgroundClass}`}>
+        <button
+          className="absolute top-4 right-4 z-[110] rounded-xl border border-border bg-card p-2 text-muted-foreground shadow-md hover:text-foreground"
+          onClick={() => setIsFullScreen(false)}
+        >
+          <Shrink size={20} />
+        </button>
+
+        {chasamRoomTheme.image ? (
+          <img alt="Chasam room background" className="absolute inset-0 h-full w-full object-cover" src={chasamRoomTheme.image} />
+        ) : null}
+        <div className={`absolute inset-0 ${chasamRoomTheme.overlayClass}`} />
+        <div className={`absolute bottom-[11%] left-1/2 h-24 w-[58%] -translate-x-1/2 rounded-full blur-2xl ${chasamRoomTheme.floorClass}`} />
+        <div className="absolute inset-x-0 bottom-0 h-[15vh] bg-gradient-to-t from-white/18 via-white/6 to-transparent" />
+
+        <div className={`pointer-events-none absolute top-[8vh] z-20 w-[min(88%,390px)] transition-all duration-350 ease-out ${isFullScreenNewsHidden ? `left-1/2 -translate-x-1/2 ${chasamRoomTheme.bubbleOffsetMobile} md:${chasamRoomTheme.bubbleOffsetDesktop}` : "left-[32%] -translate-x-1/2"}`}>
+          <div className="relative rounded-[1.45rem] border border-white/65 bg-white/86 px-5 py-4 shadow-[0_18px_45px_rgba(15,23,42,0.14)] backdrop-blur-md">
+            <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
+              <Sparkles size={12} /> buddy voice
+            </div>
+            <p className="mt-2 text-sm font-semibold leading-6 text-slate-800 md:text-[15px]">{companionLine.text}</p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-slate-900/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-600">
+                {companionLine.source}
+              </span>
+              <span className="rounded-full bg-slate-900/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-600">
+                joy: {demoStats.motivation}
+              </span>
+            </div>
+            <div className="absolute left-[54%] top-full h-4 w-4 -translate-x-1/2 -translate-y-2 rotate-45 border-b border-r border-white/65 bg-white/86" />
+          </div>
+        </div>
+
+        <div className={`buddy-character ${isFullScreenNewsHidden ? "buddy-character--break" : "buddy-character--post-break"}`}>
+          <motion.div 
+             animate={rewardAnimation}
+             className={`relative z-10 mx-auto w-full max-w-[980px] outline-none cursor-pointer`}
+             onClick={handleBuddyTap}
+          >
+            <Live2DBuddyCanvas
+              className="h-[400px] w-full md:h-[600px] lg:h-[800px]"
+              expressionId={activeExpressionId}
+              fallbackImage={activeChasamSkin.image}
+              layout={chasamRoomTheme.layout}
+              modelUrl={activeChasamSkin.modelUrl}
+              motionIndex={activeMotion.index}
+              motionNonce={motionNonce}
+            />
+          </motion.div>
+        </div>
+
+        {isFullScreenNewsHidden ? (
+          <button
+            className="absolute right-8 top-20 z-50 inline-flex items-center gap-2 rounded-2xl border border-border/80 bg-card/90 p-3 text-sm font-black text-foreground shadow-lg backdrop-blur hover:bg-muted"
+            onClick={() => setIsFullScreenNewsHidden(false)}
+            type="button"
+          >
+            <BookOpenCheck size={18} />
+            Mở News / Quest
+          </button>
+        ) : (
+          <aside className="room-news-panel custom-scrollbar">
+            <div className="mb-4 flex justify-end">
+              <button
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-200/50 text-slate-600 transition hover:bg-slate-300/80 hover:text-slate-900"
+                onClick={() => setIsFullScreenNewsHidden(true)}
+                type="button"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <BreakQuestJourneyPanel
+              activeArticle={activeBreakArticle}
+              activeStage={breakFlowStage}
+              errorMessage={breakQuestError}
+              isLoading={isBreakQuestLoading}
+              onOpenNewsQuest={() => {}}
+              onRestart={handleCloseBreakQuest}
+              onRevealQuiz={() => setBreakFlowStage("quiz")}
+              onRevealVocab={() => setBreakFlowStage("vocab")}
+              onSelectAnswer={handleAnswerSelect}
+              onSubmitQuiz={handleSubmitBreakQuest}
+              quest={generatedBreakQuest}
+              quizResult={breakQuestResult}
+              selectedAnswers={breakQuestAnswers}
+            />
+            {!generatedBreakQuest && !isBreakQuestLoading && (
+              <BuddyNewsfeedPanel
+                feedItems={owner2Experience.feedItems}
+                feedState={owner2Experience.feedState}
+                maxItems={owner2Experience.newsfeedLayout.maxItems}
+                note={owner2Experience.newsfeedLayout.note}
+                onQuestAction={handleNewsfeedQuestAction}
+              />
+            )}
+          </aside>
+        )}
+      </div>
+    );
+  }
+
+  const isFullScreenClass = "min-w-0 overflow-hidden rounded-[2rem] border border-border/80 bg-card/72 p-4 text-card-foreground shadow-[0_28px_90px_rgba(15,23,42,0.12)] backdrop-blur md:p-6 relative";
+
   return (
     <div className="mx-auto max-w-screen-2xl space-y-6">
       {isQuizLocked ? (
@@ -711,24 +1010,33 @@ export function BuddyRoomPage() {
       ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start">
-        <section className="min-w-0 overflow-hidden rounded-[2rem] border border-border/80 bg-card/72 p-4 text-card-foreground shadow-[0_28px_90px_rgba(15,23,42,0.12)] backdrop-blur md:p-6">
-          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-            {selectedModelType === "2d" && (
-              <div>
-                <p className="soft-chip">AI Mentor</p>
-                <h1 className="mt-3 text-3xl font-black text-foreground md:text-4xl">
-                  {activeBuddy.name}
-                </h1>
-                <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-muted-foreground md:text-base">
-                  Đang hiển thị model 2D và background room 2D riêng của buddy này.
-                </p>
-              </div>
-            )}
+        <section className={isFullScreenClass}>
+          <div className="flex flex-col flex-1 min-w-0">
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+              {selectedModelType === "2d" && (
+                <div>
+                  <p className="soft-chip">AI Mentor</p>
+                  <h1 className="mt-3 text-3xl font-black text-foreground md:text-4xl">
+                    {activeBuddy.name}
+                  </h1>
+                  <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-muted-foreground md:text-base">
+                    Đang hiển thị model 2D và background room 2D riêng của buddy này.
+                  </p>
+                </div>
+              )}
 
-            <div className="flex flex-wrap gap-3">
-              <Link className="secondary-button" to="/buddies">
-                Đổi buddy
-              </Link>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  className="inline-flex items-center gap-2 rounded-xl bg-card p-2 text-muted-foreground shadow-sm transition hover:bg-muted hover:text-foreground md:px-3"
+                  onClick={() => setIsFullScreen(true)}
+                  type="button"
+                >
+                  <Expand size={16} />
+                  <span className="hidden text-sm font-black md:inline">Phóng to</span>
+                </button>
+                <Link className="secondary-button" to="/buddies">
+                  Đổi buddy
+                </Link>
               <Link className="secondary-button" to="/buddy-3d">
                 Mở cửa hàng
                 <ArrowRight size={16} />
@@ -961,6 +1269,8 @@ export function BuddyRoomPage() {
               {renderBuddyCompanionSystems()}
             </div>
           )}
+
+          </div>
         </section>
 
         <div className="space-y-4">

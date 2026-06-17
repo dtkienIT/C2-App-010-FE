@@ -190,3 +190,36 @@ export type Buddy3DSettings = {
   selectedBackground: RoomBackground | null;
   userStats?: Pick<ApiUser, "coins" | "level" | "xp" | "nextLevelXp" | "totalXp">;
 };
+
+
+export type BreakQuestVocabularyItem = {
+  word: string;
+  meaningVi: string;
+  exampleEn: string;
+  sourceSentence?: string;
+};
+
+export type BreakQuestQuestion = {
+  id: string;
+  type: "multiple_choice" | string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanationVi: string;
+};
+
+export type BreakQuest = {
+  articleId: string;
+  title: string;
+  imageUrl?: string | null;
+  summaryVi: string;
+  vocabulary: BreakQuestVocabularyItem[];
+  questions: BreakQuestQuestion[];
+  companionLines: string[];
+  source: "llm" | "fallback" | string;
+};
+
+export type BreakQuestResult = {
+  correctCount: number;
+  totalQuestions: number;
+};
