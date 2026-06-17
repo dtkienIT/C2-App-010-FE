@@ -6,6 +6,13 @@ import { listRecentNotifications } from "./notificationApi";
 import { USER_NOTIFICATIONS_UPDATED_EVENT } from "./notificationEvents";
 import type { RecentNotification } from "./notificationTypes";
 
+type HeaderNotificationEvent = {
+  body: string;
+  reminderId?: string;
+  targetUrl: string;
+  title: string;
+};
+
 function formatRelativeTime(value?: string | null) {
   if (!value) return "Vừa xong";
 
@@ -39,6 +46,31 @@ function NotificationIcon({ type }: { type: string }) {
   );
 }
 
+function buildLocalReminderNotification(detail: HeaderNotificationEvent): RecentNotification {
+  const createdAt = new Date().toISOString();
+
+  return {
+    eventType: "DAILY_STUDY_REMINDER",
+    id: `local-reminder-${detail.reminderId || Date.now()}`,
+    payload: {
+      body: detail.body,
+      createdAt,
+      reminderId: detail.reminderId,
+      targetUrl: detail.targetUrl || "/buddy-room?mode=focus&source=study_reminder",
+      title: detail.title,
+      type: "daily_study_reminder",
+    },
+    processedAt: createdAt,
+    status: "stored",
+  };
+}
+
+function getNotificationTimestamp(notification: RecentNotification) {
+  const value = notification.payload.createdAt || notification.processedAt;
+  const timestamp = value ? new Date(value).getTime() : 0;
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
 export function HeaderNotificationsPopover() {
   const { mode } = useAuth();
   const navigate = useNavigate();
@@ -54,7 +86,13 @@ export function HeaderNotificationsPopover() {
 
     try {
       const nextNotifications = await listRecentNotifications();
-      setNotifications(nextNotifications);
+      setNotifications((current) => {
+        const localNotifications = current.filter((item) => item.id.startsWith("local-reminder-"));
+        const localIds = new Set(localNotifications.map((item) => item.id));
+        return [...localNotifications, ...nextNotifications.filter((item) => !localIds.has(item.id))].sort(
+          (left, right) => getNotificationTimestamp(right) - getNotificationTimestamp(left),
+        );
+      });
     } catch {
       // Header bell should stay quiet if notifications cannot be loaded.
     }
@@ -67,15 +105,30 @@ export function HeaderNotificationsPopover() {
   useEffect(() => {
     if (mode !== "authenticated") return undefined;
 
+    function handleInAppNotification(event: Event) {
+      const detail = (event as CustomEvent<HeaderNotificationEvent>).detail;
+      if (!detail) return;
+
+      const localNotification = buildLocalReminderNotification(detail);
+      setNotifications((current) => {
+        const withoutDuplicate = current.filter((item) => item.id !== localNotification.id);
+        return [localNotification, ...withoutDuplicate];
+      });
+      setIsOpen(true);
+      void refreshNotifications();
+    }
+
     const handleRefresh = () => {
       void refreshNotifications();
     };
 
+    window.addEventListener("study-buddy:in-app-notification", handleInAppNotification);
     window.addEventListener(USER_NOTIFICATIONS_UPDATED_EVENT, handleRefresh);
     window.addEventListener("focus", handleRefresh);
     const intervalId = window.setInterval(() => void refreshNotifications(), 30000);
 
     return () => {
+      window.removeEventListener("study-buddy:in-app-notification", handleInAppNotification);
       window.removeEventListener(USER_NOTIFICATIONS_UPDATED_EVENT, handleRefresh);
       window.removeEventListener("focus", handleRefresh);
       window.clearInterval(intervalId);
@@ -121,7 +174,7 @@ export function HeaderNotificationsPopover() {
       >
         <Bell size={20} />
         {visibleNotifications.length > 0 ? (
-          <span className="absolute right-2.5 top-2.5 grid min-h-5 min-w-5 place-items-center rounded-full border-2 border-card bg-rose-500 px-1 text-[10px] font-black text-white">
+          <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full border border-card bg-rose-500 px-1 text-[9px] font-black leading-none text-white shadow-sm">
             {Math.min(visibleNotifications.length, 9)}
           </span>
         ) : null}

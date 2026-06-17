@@ -1,7 +1,7 @@
 import { ChevronDown, Clock3, Power, Trash2, X } from "lucide-react";
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { getNotificationErrorMessage } from "./notificationApi";
-import { buildFocusModeUrl, showLocalSystemNotification } from "./webPushService";
+import { buildFocusModeUrl } from "./webPushService";
 import { useStudyReminders, weekDays } from "./useStudyReminders";
 
 const defaultDays = [1, 2, 3, 4, 5];
@@ -252,12 +252,6 @@ function dispatchInAppReminder(reminderId: string) {
       },
     }),
   );
-  void showLocalSystemNotification({
-    body: "Buddy đang chờ bạn. Bắt đầu một phiên tập trung ngắn nhé!",
-    reminderId,
-    targetUrl,
-    title: "Đến giờ học rồi!",
-  }).catch(() => undefined);
 }
 
 export function StudyReminderSettings() {

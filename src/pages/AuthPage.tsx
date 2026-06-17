@@ -34,13 +34,16 @@ export function AuthPage() {
   const { login, register, continueAsGuest, mode } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [authMode, setAuthMode] = useState<AuthMode>("login");
+  const [authMode, setAuthMode] = useState<AuthMode>(() => {
+    const state = location.state as { authMode?: unknown } | null;
+    return state?.authMode === "register" ? "register" : "login";
+  });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (mode !== "signed_out") {
+  if (mode === "authenticated") {
     return <Navigate replace to={getRedirectTarget(location.state)} />;
   }
 

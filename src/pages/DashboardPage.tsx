@@ -138,13 +138,7 @@ export function DashboardPage() {
                 </Link>
                 <button
                   className="secondary-button"
-                  onClick={() => {
-                    if (mode === "guest") {
-                      setShowGuestBuddyPrompt(true);
-                      return;
-                    }
-                    navigate("/buddy-room");
-                  }}
+                  onClick={() => navigate("/buddy-room")}
                   type="button"
                 >
                   Vào phòng buddy

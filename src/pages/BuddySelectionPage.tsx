@@ -167,7 +167,7 @@ export function BuddySelectionPage() {
             </div>
 
             <div className="mt-5 flex flex-wrap items-center gap-3">
-              <button className="secondary-button" onClick={() => handleProtectedAction("vào Buddy Room", "/buddy-room")} type="button">
+              <button className="secondary-button" onClick={() => navigate("/buddy-room")} type="button">
                 Vào Buddy Room
               </button>
               <button className="secondary-button" onClick={() => handleProtectedAction("mở Buddy 3D", "/buddy-3d")} type="button">

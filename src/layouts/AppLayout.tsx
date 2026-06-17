@@ -18,7 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type MouseEvent as ReactMouseEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
@@ -128,6 +128,7 @@ export function AppLayout() {
   const [stats, setStats] = useState<ApiUser | null>(null);
   const [activeQuizSession, setActiveQuizSession] = useState(() => readActiveQuizPomodoroSession());
   const [isStreakPopoverOpen, setIsStreakPopoverOpen] = useState(false);
+  const [lockedNavPrompt, setLockedNavPrompt] = useState<null | { label: string; to: string }>(null);
   const streakPopoverRef = useRef<HTMLDivElement | null>(null);
 
   async function refreshUserStats() {
@@ -234,22 +235,29 @@ export function AppLayout() {
     streak: stats?.streak ?? 0,
   };
   const isQuizNavigationLocked = Boolean(activeQuizSession) && !activeQuizSession?.isOnBreak;
+  const lockedNavMessage = "Bạn cần làm quiz xong để mở khóa khu vực này.";
 
   function renderNavLink(item: (typeof navItems)[number], mobile = false) {
     const Icon = item.icon;
-    const isLockedTarget = isQuizNavigationLocked && (item.to === "/buddy-room" || item.to === "/buddy-3d");
+    const isLockedTarget = mode !== "guest" && isQuizNavigationLocked && (item.to === "/buddy-room" || item.to === "/buddy-3d");
+    const openLockedPrompt = (event: ReactMouseEvent<HTMLAnchorElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setLockedNavPrompt({ label: item.label, to: item.to });
+    };
 
     return (
       <NavLink
         aria-disabled={isLockedTarget}
+        onClick={isLockedTarget ? openLockedPrompt : undefined}
         className={({ isActive }) =>
           mobile
             ? `group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-extrabold transition ${
                 isActive ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground hover:bg-card hover:text-foreground"
-              } ${isLockedTarget ? "pointer-events-none opacity-45" : ""}`
+              } ${isLockedTarget ? "cursor-not-allowed opacity-45" : ""}`
             : `group flex h-11 items-center gap-3 rounded-xl px-3 text-[14px] font-extrabold transition ${
                 isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              } ${isLockedTarget ? "pointer-events-none opacity-45" : ""}`
+              } ${isLockedTarget ? "cursor-not-allowed opacity-45" : ""}`
         }
         key={item.to}
         to={item.to}
@@ -260,6 +268,50 @@ export function AppLayout() {
       </NavLink>
     );
   }
+
+  const lockedNavPopup = lockedNavPrompt ? (
+    <div className="fixed inset-0 z-[100001] flex items-center justify-center bg-slate-950/40 px-4 py-6 backdrop-blur-[3px]">
+      <div className="w-full max-w-md rounded-[28px] border border-border/80 bg-card p-6 text-card-foreground shadow-[0_24px_80px_rgba(15,23,42,0.22)]">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary">
+              <Target size={20} />
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">Cần làm quiz</p>
+              <h2 className="mt-1 text-2xl font-black leading-tight text-foreground">{lockedNavPrompt.label} đang bị khóa</h2>
+            </div>
+          </div>
+          <button
+            aria-label="Đóng thông báo"
+            className="grid h-9 w-9 place-items-center rounded-xl bg-muted text-muted-foreground transition hover:bg-muted/80 hover:text-foreground"
+            onClick={() => setLockedNavPrompt(null)}
+            type="button"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <p className="mt-4 text-sm leading-6 text-muted-foreground">{lockedNavMessage}</p>
+
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <button
+            className="primary-button flex-1 justify-center"
+            onClick={() => {
+              setLockedNavPrompt(null);
+              navigate("/quiz");
+            }}
+            type="button"
+          >
+            Làm quiz ngay
+          </button>
+          <button className="secondary-button flex-1 justify-center" onClick={() => setLockedNavPrompt(null)} type="button">
+            Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   const mobileMenu = isMobileMenuOpen ? (
     <div className="fixed inset-0 z-[99999] isolation-isolate lg:hidden">
@@ -516,6 +568,8 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      {typeof document !== "undefined" ? createPortal(lockedNavPopup, document.body) : null}
     </div>
   );
 }
