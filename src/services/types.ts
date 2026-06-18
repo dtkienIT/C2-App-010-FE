@@ -1,3 +1,11 @@
+export type DailyCheckInStatus = {
+  alreadyCheckedInToday: boolean;
+  awarded: boolean;
+  checkedInDate: string;
+  reward: number;
+  streakCount: number;
+};
+
 export type ApiUser = {
   id: string | number | null;
   email: string;
@@ -16,6 +24,7 @@ export type ApiUser = {
   studyTime?: string;
   quizCompleted?: number;
   accuracy?: number;
+  dailyCheckIn?: DailyCheckInStatus;
 };
 
 export type Mission = {

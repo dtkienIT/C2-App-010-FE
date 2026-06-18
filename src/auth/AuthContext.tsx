@@ -3,6 +3,7 @@ import { createContext, startTransition, useContext, useEffect, useState, type R
 import { AUTH_TOKEN_KEY, AUTH_UNAUTHORIZED_EVENT } from "../services/apiClient";
 import { getMeWithApi, loginWithApi, registerWithApi, verifyEmailWithApi, type RegisterResponse } from "../services/authApi";
 import { isSupabaseConfigured, supabase } from "../services/supabaseClient";
+import { emitUserStatsUpdated } from "../services/userStatsEvents";
 
 type Role = "student" | "teacher" | "admin" | "guest";
 type SessionMode = "authenticated" | "guest" | "signed_out";
@@ -229,6 +230,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setMode("authenticated");
           setIsLoading(false);
         });
+        emitUserStatsUpdated();
       } catch {
         if (!isMounted) return;
         clearStoredAuth();
@@ -290,6 +292,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setUser(nextUser);
       setMode("authenticated");
+      emitUserStatsUpdated();
       return;
     }
 
@@ -299,6 +302,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStoredUser(nextUser);
     setUser(nextUser);
     setMode("authenticated");
+    emitUserStatsUpdated();
   }
 
   async function register(email: string, password: string) {
@@ -336,6 +340,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStoredUser(nextUser);
     setUser(nextUser);
     setMode("authenticated");
+    emitUserStatsUpdated();
   }
 
   function continueAsGuest() {
