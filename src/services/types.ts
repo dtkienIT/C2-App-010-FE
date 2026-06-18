@@ -103,6 +103,7 @@ export type Quiz = {
   rewardXp?: number | null;
   rewardCoin?: number | null;
   rewardCoins?: number | null;
+  submissionToken?: string;
   totalQuestions?: number;
   questions?: QuizQuestion[];
 };
@@ -128,6 +129,12 @@ export type QuizAttempt = {
     isCorrect: boolean;
     explanation?: string;
   }>;
+  levelUp?: {
+    level: number;
+    nextLevelXp: number;
+    xp: number;
+  } | null;
+  userStats?: Pick<ApiUser, "coins" | "level" | "nextLevelXp" | "streak" | "studyTime" | "totalXp" | "xp" | "quizCompleted" | "accuracy">;
 };
 
 export type ProgressSummary = {

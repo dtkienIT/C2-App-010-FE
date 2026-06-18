@@ -14,7 +14,10 @@ type LevelUpState = {
   xp: number;
 };
 
+type UserStatsSnapshot = Pick<ApiUser, "accuracy" | "coins" | "level" | "nextLevelXp" | "quizCompleted" | "streak" | "studyTime" | "totalXp" | "xp">;
+
 type UserStatsContextValue = {
+  applyStatsSnapshot: (nextStats: UserStatsSnapshot | null, options?: { levelUp?: LevelUpState | null }) => void;
   isLoading: boolean;
   refreshStats: (options?: { silent?: boolean; trigger?: "init" | "event" | "manual" }) => Promise<ApiUser | null>;
   stats: ApiUser | null;
@@ -109,6 +112,32 @@ export function UserStatsProvider({ children }: { children: ReactNode }) {
   const [levelUpState, setLevelUpState] = useState<LevelUpState | null>(null);
   const previousLevelRef = useRef<number | null>(stats?.level ?? null);
 
+  function applyStatsSnapshot(nextStats: UserStatsSnapshot | null, options?: { levelUp?: LevelUpState | null }) {
+    if (!nextStats) return;
+
+    setStats((current) => ({
+      id: current?.id ?? null,
+      email: current?.email ?? "",
+      role: current?.role ?? "student",
+      ...current,
+      ...nextStats,
+    }));
+    previousLevelRef.current = nextStats.level ?? previousLevelRef.current ?? 0;
+    if (typeof window !== "undefined") {
+      const mergedStats = {
+        id: stats?.id ?? null,
+        email: stats?.email ?? "",
+        role: stats?.role ?? "student",
+        ...stats,
+        ...nextStats,
+      };
+      window.localStorage.setItem(USER_STATS_CACHE_KEY, JSON.stringify(mergedStats));
+    }
+    if (options?.levelUp) {
+      setLevelUpState(options.levelUp);
+    }
+  }
+
   async function refreshStats(options?: { silent?: boolean; trigger?: "init" | "event" | "manual" }) {
     if (mode !== "authenticated") {
       setStats(null);
@@ -126,11 +155,7 @@ export function UserStatsProvider({ children }: { children: ReactNode }) {
       const previousLevel = previousLevelRef.current;
       const nextLevel = nextStats.level ?? 0;
 
-      setStats(nextStats);
-      previousLevelRef.current = nextLevel;
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(USER_STATS_CACHE_KEY, JSON.stringify(nextStats));
-      }
+      applyStatsSnapshot(nextStats);
 
       if (options?.trigger === "event" && previousLevel !== null && nextLevel > previousLevel) {
         setLevelUpState({
@@ -172,6 +197,7 @@ export function UserStatsProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
+      applyStatsSnapshot,
       isLoading,
       refreshStats,
       stats,

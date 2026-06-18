@@ -1,8 +1,9 @@
 import { ArrowRight, Brain, CheckCircle2, RotateCcw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
+import { useUserStats } from "../../features/user-stats/UserStatsProvider";
 import { GuestAuthPromptModal } from "../GuestAuthPromptModal";
-import { generateQuiz, submitGeneratedQuizAttempt } from "../../services/quizzesApi";
+import { generateQuiz, isQuizSessionExpiredError, submitQuizAttempt } from "../../services/quizzesApi";
 import type { Quiz, QuizAttempt } from "../../services/types";
 import { emitUserStatsUpdated } from "../../services/userStatsEvents";
 
@@ -15,6 +16,7 @@ type MiniQuizPhase = "idle" | "selecting" | "loading" | "ready" | "submitted";
 
 export function MiniQuizPanel({ compact = false, onCompleted }: MiniQuizPanelProps) {
   const { mode } = useAuth();
+  const { applyStatsSnapshot } = useUserStats();
   const [phase, setPhase] = useState<MiniQuizPhase>("idle");
   const [questionCount, setQuestionCount] = useState<1 | 2 | 3 | null>(null);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
@@ -86,19 +88,28 @@ export function MiniQuizPanel({ compact = false, onCompleted }: MiniQuizPanelPro
     setError("");
 
     try {
-      const nextAttempt = await submitGeneratedQuizAttempt(
+      const nextAttempt = await submitQuizAttempt(
         quiz.quizId ?? quiz.id,
         Object.entries(selectedAnswers).map(([questionId, selectedOptionId]) => ({
           questionId,
           selectedOptionId,
         })),
+        quiz.submissionToken,
       );
 
+      if (nextAttempt.userStats) {
+        applyStatsSnapshot(nextAttempt.userStats, { levelUp: nextAttempt.levelUp ?? null });
+      }
       setAttempt(nextAttempt);
       setPhase("submitted");
       emitUserStatsUpdated();
       onCompleted(nextAttempt);
-    } catch {
+    } catch (submitError) {
+      if (isQuizSessionExpiredError(submitError)) {
+        setError("Mini quiz đã hết hạn, Buddy đang tạo đề mới cho bạn.");
+        await fetchQuiz(questionCount ?? 1);
+        return;
+      }
       setError("Buddy chưa lưu được kết quả mini quiz. Bạn thử nộp lại một chút nhé.");
     } finally {
       setIsSubmitting(false);

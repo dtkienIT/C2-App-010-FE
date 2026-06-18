@@ -215,8 +215,10 @@ export function AppLayout() {
         onClick={isLockedTarget ? openLockedPrompt : undefined}
         className={({ isActive }) =>
           mobile
-            ? `group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-extrabold transition ${
-                isActive ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground hover:bg-card hover:text-foreground"
+            ? `group flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-extrabold shadow-sm transition ${
+                isActive
+                  ? "border-primary/30 bg-primary text-primary-foreground shadow-[0_10px_24px_rgba(109,76,255,0.22)]"
+                  : "border-border/75 bg-white text-slate-700 hover:border-primary/25 hover:bg-white hover:text-slate-950 dark:border-white/10 dark:bg-slate-900/58 dark:text-slate-300 dark:hover:bg-slate-800/78 dark:hover:text-slate-50"
               } ${isLockedTarget ? "cursor-not-allowed opacity-45" : ""}`
             : `group flex h-11 items-center gap-3 rounded-xl px-3 text-[14px] font-extrabold transition ${
                 isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -286,12 +288,12 @@ export function AppLayout() {
         onClick={() => setIsMobileMenuOpen(false)}
         type="button"
       />
-      <div className="absolute inset-y-0 left-0 z-[100000] flex w-[88%] max-w-[340px] flex-col border-r border-border/80 bg-card/96 px-4 py-5 text-card-foreground shadow-[18px_0_40px_rgba(15,23,42,0.18)] backdrop-blur-2xl">
+      <div className="absolute inset-y-0 left-0 z-[100000] flex w-[88%] max-w-[340px] flex-col border-r border-border/80 bg-white px-4 py-5 text-card-foreground shadow-[18px_0_40px_rgba(15,23,42,0.2)] backdrop-blur-2xl dark:bg-card/96 dark:shadow-[18px_0_44px_rgba(2,6,23,0.42)]">
         <div className="flex items-center justify-between gap-3">
           <div className="text-sm font-black text-foreground">Buddy Study</div>
           <button
             aria-label="Đóng menu"
-            className="grid h-11 w-11 place-items-center rounded-xl border border-border/80 bg-muted/75 text-foreground transition hover:bg-card"
+            className="grid h-11 w-11 place-items-center rounded-xl border border-border/80 bg-white text-foreground shadow-sm transition hover:bg-slate-50 dark:bg-muted/75 dark:hover:bg-card"
             onClick={() => setIsMobileMenuOpen(false)}
             type="button"
           >
@@ -300,7 +302,7 @@ export function AppLayout() {
         </div>
 
         <Link
-          className="mt-5 block rounded-2xl border border-border/80 bg-muted/72 p-4 shadow-sm transition hover:border-primary/25 hover:bg-card/92"
+          className="mt-5 block rounded-2xl border border-border/80 bg-white p-4 shadow-sm transition hover:border-primary/25 hover:bg-white dark:bg-slate-900/58 dark:hover:bg-slate-900/78"
           to="/profile"
         >
           <div className="flex items-center gap-3">
@@ -316,11 +318,11 @@ export function AppLayout() {
             </div>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-border/75 bg-card/92 px-3 py-3 text-center shadow-sm">
+            <div className="rounded-2xl border border-border/75 bg-white px-3 py-3 text-center shadow-sm dark:bg-slate-950/32">
               <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Xu</p>
               <p className="mt-1 text-lg font-black text-foreground">{learningStats.coins.toLocaleString("vi-VN")}</p>
             </div>
-            <div className="rounded-2xl border border-border/75 bg-card/92 px-3 py-3 text-center shadow-sm">
+            <div className="rounded-2xl border border-border/75 bg-white px-3 py-3 text-center shadow-sm dark:bg-slate-950/32">
               <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Streak</p>
               <p className="mt-1 text-lg font-black text-foreground">{learningStats.streak} ngày</p>
             </div>
@@ -329,7 +331,7 @@ export function AppLayout() {
 
         <nav className="mt-5 flex-1 space-y-2 overflow-y-auto">{navItems.map((item) => renderNavLink(item, true))}</nav>
 
-        <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl border border-border/70 bg-white/72 p-3 shadow-sm dark:bg-slate-900/45">
           <ThemeToggle className="col-span-2 justify-center" />
           <Link className="secondary-button justify-center" to="/profile">
             Hồ sơ

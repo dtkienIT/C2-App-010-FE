@@ -11,7 +11,8 @@ import {
 } from "../components/buddy/quizPomodoroBridge";
 import { useActiveBuddy } from "../components/buddy/useActiveBuddy";
 import { Card } from "../components/Card";
-import { generateQuiz, submitGeneratedQuizAttempt } from "../services/quizzesApi";
+import { useUserStats } from "../features/user-stats/UserStatsProvider";
+import { generateQuiz, isQuizSessionExpiredError, submitQuizAttempt } from "../services/quizzesApi";
 import { emitUserStatsUpdated } from "../services/userStatsEvents";
 import type { Quiz } from "../services/types";
 
@@ -19,6 +20,7 @@ export function QuizPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { mode } = useAuth();
+  const { applyStatsSnapshot } = useUserStats();
   const { activeBuddy } = useActiveBuddy();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
@@ -89,6 +91,21 @@ export function QuizPage() {
     return questions.length > 0 && questions.every((question) => selectedAnswers[question.id]);
   }, [quiz, selectedAnswers]);
 
+  async function loadFreshQuiz() {
+    const data = await generateQuiz({ count: 10, difficulty: "beginner", questionTypes: ["meaning", "reverse", "pronunciation", "type", "fill_blank"] });
+    setQuiz(data);
+    setSelectedAnswers({});
+    setActiveQuestionIndex(0);
+    writeActiveQuizPomodoroSession({
+      currentQuestionIndex: 0,
+      isOnBreak: false,
+      quiz: data,
+      returnTo: "/quiz",
+      selectedAnswers: {},
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
   async function handleSubmit() {
     if (!quiz) return;
     if (!allAnswered) {
@@ -99,14 +116,28 @@ export function QuizPage() {
     setError("");
     setIsSubmitting(true);
     try {
-      const attempt = await submitGeneratedQuizAttempt(
+      const attempt = await submitQuizAttempt(
         quiz.quizId ?? quiz.id,
         Object.entries(selectedAnswers).map(([questionId, selectedOptionId]) => ({ questionId, selectedOptionId })),
+        quiz.submissionToken,
       );
+      if (attempt.userStats) {
+        applyStatsSnapshot(attempt.userStats, { levelUp: attempt.levelUp ?? null });
+      }
       emitUserStatsUpdated();
       clearActiveQuizPomodoroSession();
       navigate(`/quiz-result?attemptId=${attempt.attemptId}`);
-    } catch {
+    } catch (submitError) {
+      if (isQuizSessionExpiredError(submitError)) {
+        clearActiveQuizPomodoroSession();
+        try {
+          await loadFreshQuiz();
+          setError("Quiz đã hết hạn, Buddy đã tạo quiz mới cho bạn.");
+        } catch {
+          setError("Quiz đã hết hạn và chưa tạo được quiz mới. Hãy thử lại sau.");
+        }
+        return;
+      }
       setError("Không nộp được quiz. Hãy thử lại sau.");
     } finally {
       setIsSubmitting(false);
