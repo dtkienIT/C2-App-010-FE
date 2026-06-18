@@ -28,10 +28,8 @@ import { readActiveQuizPomodoroSession } from "../components/buddy/quizPomodoroB
 import { ThemeToggle } from "../components/ThemeToggle";
 import { useActiveBuddy } from "../components/buddy/useActiveBuddy";
 import { HeaderNotificationsPopover } from "../features/notifications/HeaderNotificationsPopover";
+import { useUserStats } from "../features/user-stats/UserStatsProvider";
 import { StudyBuddyLogo } from "../components/StudyBuddyLogo";
-import { apiClient } from "../services/apiClient";
-import type { ApiUser } from "../services/types";
-import { USER_STATS_UPDATED_EVENT } from "../services/userStatsEvents";
 
 const navItems = [
   { to: "/dashboard", label: "Tổng quan", icon: Home },
@@ -120,6 +118,7 @@ function MetricCard({
 
 export function AppLayout() {
   const { user, mode, logout } = useAuth();
+  const { stats } = useUserStats();
   const { activeBuddy } = useActiveBuddy();
   const navigate = useNavigate();
   const location = useLocation();
@@ -127,25 +126,10 @@ export function AppLayout() {
   const currentRole = user ? roleLabels[user.role] : "Đã đăng xuất";
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isGuestHeaderExpanded, setIsGuestHeaderExpanded] = useState(false);
-  const [stats, setStats] = useState<ApiUser | null>(null);
   const [activeQuizSession, setActiveQuizSession] = useState(() => readActiveQuizPomodoroSession());
   const [isStreakPopoverOpen, setIsStreakPopoverOpen] = useState(false);
   const [lockedNavPrompt, setLockedNavPrompt] = useState<null | { label: string; to: string }>(null);
   const streakPopoverRef = useRef<HTMLDivElement | null>(null);
-
-  async function refreshUserStats() {
-    if (mode === "guest") {
-      setStats(null);
-      return;
-    }
-
-    try {
-      const response = await apiClient.get<ApiUser>("/users/me/stats");
-      setStats(response.data);
-    } catch {
-      // Keep the current values if the refresh fails.
-    }
-  }
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -165,31 +149,6 @@ export function AppLayout() {
       window.removeEventListener("focus", syncQuizSession);
     };
   }, [location.pathname]);
-
-  useEffect(() => {
-    if (mode === "guest") {
-      setStats(null);
-      return;
-    }
-
-    let cancelled = false;
-    apiClient.get<ApiUser>("/users/me/stats").then((response) => {
-      if (!cancelled) setStats(response.data);
-    }).catch(() => undefined);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [mode]);
-
-  useEffect(() => {
-    const handleStatsUpdated = () => {
-      void refreshUserStats();
-    };
-
-    window.addEventListener(USER_STATS_UPDATED_EVENT, handleStatsUpdated);
-    return () => window.removeEventListener(USER_STATS_UPDATED_EVENT, handleStatsUpdated);
-  }, [mode]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;

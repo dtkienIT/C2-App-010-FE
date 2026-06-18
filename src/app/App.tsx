@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { UserStatsProvider } from "../features/user-stats/UserStatsProvider";
 import { AppLayout } from "../layouts/AppLayout";
 import { AuthPage } from "../pages/AuthPage";
 import { BuddySelectionPage } from "../pages/BuddySelectionPage";
@@ -50,7 +51,11 @@ function ProtectedApp() {
     return <Navigate replace state={{ from: `${location.pathname}${location.search}${location.hash}` }} to="/auth" />;
   }
 
-  return <AppLayout />;
+  return (
+    <UserStatsProvider>
+      <AppLayout />
+    </UserStatsProvider>
+  );
 }
 
 export function App() {

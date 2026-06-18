@@ -1,14 +1,13 @@
 import { BadgeCheck, Bot, CheckCircle2, Coins, Image as ImageIcon, Lock, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useCompanionModelStore } from "../components/buddy/useCompanionModelStore";
 import { Card } from "../components/Card";
+import { useCompanionModelStore } from "../components/buddy/useCompanionModelStore";
 import { UnlockCelebrationModal } from "../features/notifications/UnlockCelebrationModal";
 import { USER_NOTIFICATIONS_UPDATED_EVENT } from "../features/notifications/notificationEvents";
+import { useUserStats } from "../features/user-stats/UserStatsProvider";
 import { purchaseBuddy3DModel, purchaseRoomBackground } from "../services/buddy3dApi";
-import { apiClient } from "../services/apiClient";
-import type { ApiUser } from "../services/types";
-import { USER_STATS_UPDATED_EVENT } from "../services/userStatsEvents";
+import { emitUserStatsUpdated } from "../services/userStatsEvents";
 
 const accentTone = {
   amber: "from-amber-100 to-orange-50 text-amber-700 dark:from-amber-400/18 dark:to-orange-400/12 dark:text-amber-200",
@@ -30,7 +29,7 @@ export function Buddy3DPage() {
     selectedBackgroundId,
     storeCompanionModels,
   } = useCompanionModelStore();
-  const [coins, setCoins] = useState(0);
+  const { stats } = useUserStats();
   const [busyKey, setBusyKey] = useState("");
   const [shopMessage, setShopMessage] = useState("");
   const [celebration, setCelebration] = useState<null | {
@@ -40,49 +39,19 @@ export function Buddy3DPage() {
     targetUrl: string;
   }>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    apiClient
-      .get<ApiUser>("/users/me/stats")
-      .then((response) => {
-        if (!cancelled) {
-          setCoins(response.data.coins ?? 0);
-        }
-      })
-      .catch(() => undefined);
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleStatsUpdated = () => {
-      void refreshCoins();
-    };
-
-    window.addEventListener(USER_STATS_UPDATED_EVENT, handleStatsUpdated);
-    return () => window.removeEventListener(USER_STATS_UPDATED_EVENT, handleStatsUpdated);
-  }, []);
-
-  async function refreshCoins() {
-    try {
-      const response = await apiClient.get<ApiUser>("/users/me/stats");
-      setCoins(response.data.coins ?? 0);
-    } catch {
-      // Giữ lại số xu hiện tại nếu refresh thất bại.
-    }
+  async function syncStoreAndStats() {
+    await refreshStore();
+    emitUserStatsUpdated();
   }
 
   async function handleModelAction(modelId: string, unlocked: boolean) {
     setBusyKey(`model:${modelId}`);
     try {
       const model = storeCompanionModels.find((item) => item.id === modelId);
+
       if (!unlocked) {
         await purchaseBuddy3DModel(modelId);
-        await refreshStore();
-        await refreshCoins();
+        await syncStoreAndStats();
         setShopMessage("Đã mở khóa model 3D và trừ xu từ tài khoản.");
         setCelebration({
           cost: model?.price ?? 0,
@@ -92,6 +61,7 @@ export function Buddy3DPage() {
         });
         window.dispatchEvent(new Event(USER_NOTIFICATIONS_UPDATED_EVENT));
       }
+
       equipModel(modelId);
     } catch (error: any) {
       setShopMessage(error?.response?.data?.detail ?? "Chưa thể mở khóa model này.");
@@ -104,10 +74,10 @@ export function Buddy3DPage() {
     setBusyKey(`background:${backgroundId}`);
     try {
       const background = roomBackgrounds.find((item) => item.id === backgroundId);
+
       if (!unlocked) {
         await purchaseRoomBackground(backgroundId);
-        await refreshStore();
-        await refreshCoins();
+        await syncStoreAndStats();
         setShopMessage("Đã mở khóa background và trừ xu từ tài khoản.");
         setCelebration({
           cost: background?.price ?? 0,
@@ -117,6 +87,7 @@ export function Buddy3DPage() {
         });
         window.dispatchEvent(new Event(USER_NOTIFICATIONS_UPDATED_EVENT));
       }
+
       selectBackground(backgroundId);
     } catch (error: any) {
       setShopMessage(error?.response?.data?.detail ?? "Chưa thể mở khóa background này.");
@@ -146,7 +117,7 @@ export function Buddy3DPage() {
 
         <div className="inline-flex items-center gap-2 rounded-full border border-amber-300/70 bg-amber-500/12 px-4 py-2 text-sm font-black text-amber-800 dark:border-amber-400/20 dark:text-amber-200">
           <Coins size={16} />
-          {coins} xu
+          {(stats?.coins ?? 0).toLocaleString("vi-VN")} xu
         </div>
       </div>
 

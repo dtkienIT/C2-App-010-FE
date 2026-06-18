@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { Buddy3DStage } from "../components/buddy/Buddy3DStage";
@@ -6,32 +6,15 @@ import { BuddySelectionGrid } from "../components/buddy/BuddySelectionGrid";
 import { useActiveBuddy } from "../components/buddy/useActiveBuddy";
 import { useCompanionModelStore } from "../components/buddy/useCompanionModelStore";
 import { GuestAuthPromptModal } from "../components/GuestAuthPromptModal";
-import { apiClient } from "../services/apiClient";
-import type { ApiUser } from "../services/types";
-import { USER_STATS_UPDATED_EVENT } from "../services/userStatsEvents";
-
-const USER_STATS_CACHE_KEY = "study-buddy-user-stats-cache";
-
-function readCachedJson<T>(storageKey: string): T | null {
-  if (typeof window === "undefined") return null;
-
-  try {
-    const raw = window.localStorage.getItem(storageKey);
-    return raw ? (JSON.parse(raw) as T) : null;
-  } catch {
-    return null;
-  }
-}
+import { useUserStats } from "../features/user-stats/UserStatsProvider";
 
 export function BuddySelectionPage() {
   const { mode } = useAuth();
+  const { stats: userStats } = useUserStats();
   const { activeBuddy, activeBuddyId, allBuddies, selectBuddy } = useActiveBuddy();
   const { disableBuddy3D } = useCompanionModelStore();
   const navigate = useNavigate();
   const [guestPrompt, setGuestPrompt] = useState("");
-  const [userStats, setUserStats] = useState<ApiUser | null>(() =>
-    mode === "authenticated" ? readCachedJson<ApiUser>(USER_STATS_CACHE_KEY) : null,
-  );
   const isGuest = mode === "guest";
 
   const heroShellClassName = `bg-gradient-to-br ${activeBuddy.gradient} shadow-[0_26px_80px_rgba(15,23,42,0.10)] dark:bg-none`;
@@ -41,38 +24,6 @@ export function BuddySelectionPage() {
     "border-white/85 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(247,248,255,0.84))] text-slate-700 shadow-sm dark:!border-white/10 dark:!bg-[linear-gradient(135deg,rgba(30,41,59,0.96),rgba(15,23,42,0.92))] dark:!text-slate-100";
   const actionButtonClassName =
     "inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-black shadow-[0_10px_28px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[linear-gradient(135deg,rgba(30,41,59,0.96),rgba(15,23,42,0.92))] dark:text-slate-50 dark:shadow-[0_10px_24px_rgba(2,6,23,0.22)] dark:hover:border-white/14 dark:hover:bg-[linear-gradient(135deg,rgba(39,50,70,0.98),rgba(20,28,45,0.94))]";
-
-  useEffect(() => {
-    if (mode !== "authenticated") {
-      setUserStats(null);
-      return undefined;
-    }
-
-    let cancelled = false;
-
-    const refreshUserStats = async () => {
-      try {
-        const response = await apiClient.get<ApiUser>("/users/me/stats");
-        if (cancelled) return;
-        setUserStats(response.data);
-        window.localStorage.setItem(USER_STATS_CACHE_KEY, JSON.stringify(response.data));
-      } catch {
-        if (cancelled) return;
-      }
-    };
-
-    void refreshUserStats();
-
-    const handleStatsUpdated = () => {
-      void refreshUserStats();
-    };
-
-    window.addEventListener(USER_STATS_UPDATED_EVENT, handleStatsUpdated);
-    return () => {
-      cancelled = true;
-      window.removeEventListener(USER_STATS_UPDATED_EVENT, handleStatsUpdated);
-    };
-  }, [mode]);
 
   function showGuestPrompt(feature: string) {
     setGuestPrompt(feature);

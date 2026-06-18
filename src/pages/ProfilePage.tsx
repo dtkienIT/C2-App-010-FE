@@ -3,6 +3,7 @@ import { Crown, Flame, LogOut, Mail, RefreshCcw, ShieldCheck, Sparkles, Ticket, 
 import { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { useUserStats } from "../features/user-stats/UserStatsProvider";
 import { apiClient } from "../services/apiClient";
 import { resendVerificationOtpWithApi } from "../services/authApi";
 import type { ApiUser } from "../services/types";
@@ -46,6 +47,7 @@ function maskEmail(email: string) {
 
 export function ProfilePage() {
   const { user, mode, register, verifyEmail, logout } = useAuth();
+  const { stats: liveStats } = useUserStats();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -185,6 +187,9 @@ export function ProfilePage() {
     quizCompleted: 0,
     accuracy: 0,
   };
+  const displayLevel = liveStats?.level ?? profileStats.level;
+  const displayXp = liveStats?.xp ?? profileStats.xp;
+  const displayStreak = liveStats?.streak ?? profileStats.streak;
 
   return (
     <div className="space-y-6">
@@ -214,17 +219,17 @@ export function ProfilePage() {
             <div className="soft-tile rounded-2xl p-4">
               <Sparkles className="text-brand-600" size={20} />
               <p className="mt-3 text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">Level</p>
-              <p className="mt-1 text-2xl font-black text-foreground">{profileStats.level}</p>
+              <p className="mt-1 text-2xl font-black text-foreground">{displayLevel}</p>
             </div>
             <div className="soft-tile rounded-2xl p-4">
               <Wallet className="text-amber-500" size={20} />
               <p className="mt-3 text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">XP</p>
-              <p className="mt-1 text-2xl font-black text-foreground">{profileStats.xp}</p>
+              <p className="mt-1 text-2xl font-black text-foreground">{displayXp}</p>
             </div>
             <div className="soft-tile rounded-2xl p-4">
               <Flame className="text-orange-500" size={20} />
               <p className="mt-3 text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">Streak</p>
-              <p className="mt-1 text-2xl font-black text-foreground">{profileStats.streak}</p>
+              <p className="mt-1 text-2xl font-black text-foreground">{displayStreak}</p>
             </div>
           </div>
         </div>

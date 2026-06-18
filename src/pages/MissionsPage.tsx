@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { QuestCard } from "../components/QuestCard";
 import { claimMission, getMissions } from "../services/missionsApi";
+import { emitUserStatsUpdated } from "../services/userStatsEvents";
 import type { Mission } from "../services/types";
 
 const tabs = [
@@ -41,6 +42,7 @@ export function MissionsPage() {
   async function handleClaim(missionId: string) {
     const updated = await claimMission(missionId);
     setMissions((current) => current.map((mission) => (mission.id === missionId ? updated : mission)));
+    emitUserStatsUpdated();
   }
 
   return (

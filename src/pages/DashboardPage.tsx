@@ -9,6 +9,7 @@ import { Card, GradientCard } from "../components/Card";
 import { GuestAuthPromptModal } from "../components/GuestAuthPromptModal";
 import { ProgressBar } from "../components/ProgressBar";
 import { QuestCard } from "../components/QuestCard";
+import { useUserStats } from "../features/user-stats/UserStatsProvider";
 import { getDashboard } from "../services/dashboardApi";
 import type { DashboardData, Mission } from "../services/types";
 
@@ -37,6 +38,7 @@ const loopSteps = [
 
 export function DashboardPage() {
   const { mode } = useAuth();
+  const { stats } = useUserStats();
   const navigate = useNavigate();
   const { activeBuddy } = useActiveBuddy();
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
@@ -63,11 +65,11 @@ export function DashboardPage() {
     };
   }, [mode]);
 
-  const dashboardUser = dashboard?.user ?? {
-    level: 1,
-    xp: 0,
-    nextLevelXp: 1000,
-    totalXp: 0,
+  const dashboardUser = {
+    level: stats?.level ?? dashboard?.user?.level ?? 1,
+    xp: stats?.xp ?? dashboard?.user?.xp ?? 0,
+    nextLevelXp: stats?.nextLevelXp ?? dashboard?.user?.nextLevelXp ?? 1000,
+    totalXp: stats?.totalXp ?? dashboard?.user?.totalXp ?? stats?.xp ?? 0,
   };
   const dailyQuests: Mission[] = dashboard?.dailyQuests ?? [];
   const displayedBuddy = dashboard?.currentBuddy ?? activeBuddy;

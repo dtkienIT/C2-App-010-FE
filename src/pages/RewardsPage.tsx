@@ -2,6 +2,7 @@ import { Award, BadgeCheck, CheckCircle2, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Card } from "../components/Card";
 import { useBuddyRoomPreferences } from "../components/buddy/useBuddyRoomPreferences";
+import { useUserStats } from "../features/user-stats/UserStatsProvider";
 import { apiClient } from "../services/apiClient";
 
 type RewardItem = {
@@ -16,27 +17,21 @@ type RewardItem = {
   previewImage?: string;
 };
 
-type UserStats = {
-  coins?: number;
-};
-
 export function RewardsPage() {
   const { isRewardEquipped, setChasamSkinId } = useBuddyRoomPreferences();
-  const [coins, setCoins] = useState(0);
+  const { stats } = useUserStats();
   const [rewards, setRewards] = useState<RewardItem[]>([]);
 
   useEffect(() => {
     let cancelled = false;
 
-    Promise.all([apiClient.get<UserStats>("/users/me/stats"), apiClient.get<RewardItem[]>("/rewards")])
-      .then(([statsResponse, rewardsResponse]) => {
+    apiClient.get<RewardItem[]>("/rewards")
+      .then((rewardsResponse) => {
         if (cancelled) return;
-        setCoins(statsResponse.data.coins ?? 0);
         setRewards(rewardsResponse.data);
       })
       .catch(() => {
         if (cancelled) return;
-        setCoins(0);
         setRewards([]);
       });
 
@@ -55,7 +50,7 @@ export function RewardsPage() {
           </p>
         </div>
         <div className="rounded-2xl border border-border/70 bg-card px-5 py-3 font-black text-brand-700 shadow-sm dark:text-violet-200">
-          {coins.toLocaleString("vi-VN")} xu
+          {(stats?.coins ?? 0).toLocaleString("vi-VN")} xu
         </div>
       </div>
 
