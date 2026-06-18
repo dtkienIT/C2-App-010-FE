@@ -43,7 +43,9 @@ export function BuddyAvatar({ emoji, fallbackImage, size = "md", variant, classN
 
   if (fallbackImage) {
     return (
-      <div className={`overflow-hidden rounded-[1.75rem] border border-white/80 bg-white shadow-sm ${sizeClass[size]} ${className}`}>
+      <div
+        className={`overflow-hidden rounded-[1.75rem] border border-border/75 bg-card/92 shadow-sm backdrop-blur ${sizeClass[size]} ${className}`}
+      >
         <img alt={`${resolvedVariant} buddy`} className="h-full w-full object-cover object-top" src={fallbackImage} />
       </div>
     );

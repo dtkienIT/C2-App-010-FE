@@ -11,12 +11,12 @@ import type { ApiUser } from "../services/types";
 import { USER_STATS_UPDATED_EVENT } from "../services/userStatsEvents";
 
 const accentTone = {
-  amber: "from-amber-100 to-orange-50 text-amber-700",
-  cyan: "from-cyan-100 to-sky-50 text-cyan-700",
-  emerald: "from-emerald-100 to-green-50 text-emerald-700",
-  indigo: "from-indigo-100 to-blue-50 text-indigo-700",
-  rose: "from-rose-100 to-pink-50 text-rose-700",
-  violet: "from-violet-100 to-fuchsia-50 text-violet-700",
+  amber: "from-amber-100 to-orange-50 text-amber-700 dark:from-amber-400/18 dark:to-orange-400/12 dark:text-amber-200",
+  cyan: "from-cyan-100 to-sky-50 text-cyan-700 dark:from-cyan-400/18 dark:to-sky-400/12 dark:text-cyan-200",
+  emerald: "from-emerald-100 to-green-50 text-emerald-700 dark:from-emerald-400/18 dark:to-green-400/12 dark:text-emerald-200",
+  indigo: "from-indigo-100 to-blue-50 text-indigo-700 dark:from-indigo-400/18 dark:to-blue-400/12 dark:text-indigo-200",
+  rose: "from-rose-100 to-pink-50 text-rose-700 dark:from-rose-400/18 dark:to-pink-400/12 dark:text-rose-200",
+  violet: "from-violet-100 to-fuchsia-50 text-violet-700 dark:from-violet-400/18 dark:to-fuchsia-400/12 dark:text-violet-200",
 } as const;
 
 export function Buddy3DPage() {
@@ -43,11 +43,14 @@ export function Buddy3DPage() {
   useEffect(() => {
     let cancelled = false;
 
-    apiClient.get<ApiUser>("/users/me/stats").then((response) => {
-      if (!cancelled) {
-        setCoins(response.data.coins ?? 0);
-      }
-    }).catch(() => undefined);
+    apiClient
+      .get<ApiUser>("/users/me/stats")
+      .then((response) => {
+        if (!cancelled) {
+          setCoins(response.data.coins ?? 0);
+        }
+      })
+      .catch(() => undefined);
 
     return () => {
       cancelled = true;
@@ -141,7 +144,7 @@ export function Buddy3DPage() {
           </p>
         </div>
 
-        <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-black text-amber-900">
+        <div className="inline-flex items-center gap-2 rounded-full border border-amber-300/70 bg-amber-500/12 px-4 py-2 text-sm font-black text-amber-800 dark:border-amber-400/20 dark:text-amber-200">
           <Coins size={16} />
           {coins} xu
         </div>
@@ -164,7 +167,7 @@ export function Buddy3DPage() {
 
       <section className="space-y-4">
         <div className="flex items-center gap-3">
-          <Bot className="text-brand-700" size={22} />
+          <Bot className="text-brand-700 dark:text-violet-200" size={22} />
           <div>
             <h2 className="text-2xl font-black text-foreground">Model Buddy 3D</h2>
           </div>
@@ -182,14 +185,25 @@ export function Buddy3DPage() {
                   <div className={`grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br ${accentTone[model.accent]}`}>
                     <Sparkles size={24} />
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${model.unlocked ? "bg-emerald-500/12 text-emerald-600 dark:text-emerald-300" : "bg-amber-100 text-amber-800"}`}>
-                    {model.unlocked ? (isActive ? "Đang dùng" : isEquipped ? "Đã chọn" : "Đã mở khóa") : "Khóa 1 xu"}
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-bold ${
+                      model.unlocked
+                        ? "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300"
+                        : "bg-amber-500/12 text-amber-700 dark:text-amber-300"
+                    }`}
+                  >
+                    {model.unlocked ? (isActive ? "Đang dùng" : isEquipped ? "Đã chọn" : "Đã mở khóa") : `Khóa ${model.price ?? 1} xu`}
                   </span>
                 </div>
 
                 <h3 className="mt-5 text-xl font-black text-foreground">{model.name}</h3>
 
-                <button className={`${isActive ? "secondary-button" : "primary-button"} mt-6 w-full`} disabled={busy} onClick={() => void handleModelAction(model.id, model.unlocked)} type="button">
+                <button
+                  className={`${isActive ? "secondary-button" : "primary-button"} mt-6 w-full`}
+                  disabled={busy}
+                  onClick={() => void handleModelAction(model.id, model.unlocked)}
+                  type="button"
+                >
                   {model.unlocked ? (
                     isActive ? (
                       <>
@@ -205,7 +219,7 @@ export function Buddy3DPage() {
                   ) : (
                     <>
                       <Lock size={18} />
-                      Mở khóa 1 xu
+                      Mở khóa {model.price ?? 1} xu
                     </>
                   )}
                 </button>
@@ -217,7 +231,7 @@ export function Buddy3DPage() {
 
       <section className="space-y-4">
         <div className="flex items-center gap-3">
-          <ImageIcon className="text-brand-700" size={22} />
+          <ImageIcon className="text-brand-700 dark:text-violet-200" size={22} />
           <div>
             <h2 className="text-2xl font-black text-foreground">Background Buddy Room</h2>
           </div>
@@ -236,12 +250,23 @@ export function Buddy3DPage() {
 
                 <div className="mt-4 flex items-start justify-between gap-4">
                   <h3 className="text-xl font-black text-foreground">{background.name}</h3>
-                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${background.unlocked ? "bg-emerald-500/12 text-emerald-600 dark:text-emerald-300" : "bg-amber-100 text-amber-800"}`}>
-                    {background.unlocked ? (isSelected ? "Đang dùng" : "Đã mở khóa") : "Khóa 1 xu"}
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-bold ${
+                      background.unlocked
+                        ? "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300"
+                        : "bg-amber-500/12 text-amber-700 dark:text-amber-300"
+                    }`}
+                  >
+                    {background.unlocked ? (isSelected ? "Đang dùng" : "Đã mở khóa") : `Khóa ${background.price ?? 1} xu`}
                   </span>
                 </div>
 
-                <button className={`${isSelected ? "secondary-button" : "primary-button"} mt-5 w-full`} disabled={busy} onClick={() => void handleBackgroundAction(background.id, background.unlocked)} type="button">
+                <button
+                  className={`${isSelected ? "secondary-button" : "primary-button"} mt-5 w-full`}
+                  disabled={busy}
+                  onClick={() => void handleBackgroundAction(background.id, background.unlocked)}
+                  type="button"
+                >
                   {background.unlocked ? (
                     isSelected ? (
                       <>
@@ -257,7 +282,7 @@ export function Buddy3DPage() {
                   ) : (
                     <>
                       <Lock size={18} />
-                      Mở khóa 1 xu
+                      Mở khóa {background.price ?? 1} xu
                     </>
                   )}
                 </button>

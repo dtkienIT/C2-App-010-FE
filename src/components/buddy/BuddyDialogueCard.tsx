@@ -7,22 +7,22 @@ type BuddyDialogueCardProps = {
 
 const toneTheme = {
   care: {
-    chip: "Cham nhe",
+    chip: "Chạm nhẹ",
     icon: MessageCircleHeart,
     iconSurface: "warning-soft text-orange-700 dark:text-orange-200",
   },
   celebrate: {
-    chip: "Tien bo",
+    chip: "Tiến bộ",
     icon: Trophy,
     iconSurface: "primary-soft text-brand-700 dark:text-violet-200",
   },
   focus: {
-    chip: "Tap trung",
+    chip: "Tập trung",
     icon: Target,
     iconSurface: "soft-tile text-sky-700 dark:text-sky-200",
   },
   gentle: {
-    chip: "Dong hanh",
+    chip: "Đồng hành",
     icon: Sparkles,
     iconSurface: "soft-tile text-violet-700 dark:text-violet-200",
   },
@@ -50,7 +50,7 @@ export function BuddyDialogueCard({ dialogue }: BuddyDialogueCardProps) {
           </div>
           <p className="mt-3 text-sm font-semibold leading-6 text-foreground">{dialogue.text}</p>
           {dialogue.ctaLabel ? (
-            <p className="mt-3 text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">Goi y: {dialogue.ctaLabel}</p>
+            <p className="mt-3 text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">Gợi ý: {dialogue.ctaLabel}</p>
           ) : null}
         </div>
       </div>

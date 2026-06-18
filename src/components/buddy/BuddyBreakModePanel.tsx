@@ -26,10 +26,10 @@ export function BuddyBreakModePanel({
   }, [session]);
 
   return (
-    <section className="rounded-[1.6rem] border border-amber-200 bg-amber-50/80 p-5 shadow-soft">
+    <section className="rounded-[1.6rem] border border-border/80 bg-card/86 p-5 text-card-foreground shadow-soft backdrop-blur">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-amber-900">
+          <p className="inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-amber-700 dark:border-amber-300/18 dark:bg-amber-400/12 dark:text-amber-200">
             <Coffee size={13} /> Break with Buddy
           </p>
           <h2 className="mt-3 text-2xl font-black text-foreground">{formatPomodoroTime(session.secondsLeft)}</h2>
@@ -40,8 +40,8 @@ export function BuddyBreakModePanel({
         <div
           className={`rounded-2xl border px-3 py-2 text-xs font-black uppercase tracking-[0.12em] ${
             session.mode === "complete"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-              : "border-amber-200 bg-white text-amber-900"
+              ? "border-emerald-400/25 bg-emerald-500/12 text-emerald-700 dark:border-emerald-300/18 dark:bg-emerald-400/12 dark:text-emerald-200"
+              : "border-amber-400/25 bg-amber-500/10 text-amber-700 dark:border-amber-300/18 dark:bg-amber-400/12 dark:text-amber-200"
           }`}
         >
           {session.mode === "complete" ? "Hết giờ break" : "Đang nghỉ giữa quiz"}
@@ -71,7 +71,7 @@ export function BuddyBreakModePanel({
         </button>
       </div>
 
-      <p className="mt-4 text-sm font-semibold text-amber-900/80">
+      <p className="mt-4 text-sm font-semibold text-amber-700/90 dark:text-amber-200/85">
         Hết giờ break thì social lock sẽ tắt theo phiên hiện tại, và Buddy sẽ nhắc bạn quay lại focus.
       </p>
     </section>

@@ -81,7 +81,9 @@ function MetricCard({
           : "basis-[96px] min-w-[88px] xl:basis-[104px] xl:min-w-[96px] min-[1600px]:basis-[132px] min-[1600px]:min-w-[120px] 2xl:basis-[160px] 2xl:min-w-[160px]"
       } ${interactive ? "cursor-pointer transition hover:-translate-y-0.5 hover:border-primary/35" : ""} ${isActive ? "border-primary/35 ring-2 ring-primary/10" : ""}`}
     >
-      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted text-accent min-[1600px]:h-10 min-[1600px]:w-10 2xl:h-11 2xl:w-11">{icon}</div>
+      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted text-accent min-[1600px]:h-10 min-[1600px]:w-10 2xl:h-11 2xl:w-11">
+        {icon}
+      </div>
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center justify-between gap-2">
           <p className="text-xs font-black uppercase text-muted-foreground">{label}</p>
@@ -169,10 +171,12 @@ export function AppLayout() {
       setStats(null);
       return;
     }
+
     let cancelled = false;
     apiClient.get<ApiUser>("/users/me/stats").then((response) => {
       if (!cancelled) setStats(response.data);
     }).catch(() => undefined);
+
     return () => {
       cancelled = true;
     };
@@ -264,7 +268,9 @@ export function AppLayout() {
       >
         <Icon className="shrink-0" size={20} strokeWidth={2.25} />
         <span className="truncate">{item.label}</span>
-        {isLockedTarget ? <span className="ml-auto text-[10px] font-black uppercase tracking-[0.12em]">Quiz</span> : null}
+        {isLockedTarget ? (
+          <span className="ml-auto text-[10px] font-black uppercase tracking-[0.12em]">Quiz</span>
+        ) : null}
       </NavLink>
     );
   }
@@ -321,12 +327,12 @@ export function AppLayout() {
         onClick={() => setIsMobileMenuOpen(false)}
         type="button"
       />
-      <div className="absolute inset-y-0 left-0 z-[100000] flex w-[88%] max-w-[340px] flex-col bg-card px-4 py-5 text-card-foreground shadow-[18px_0_40px_rgba(15,23,42,0.18)]">
+      <div className="absolute inset-y-0 left-0 z-[100000] flex w-[88%] max-w-[340px] flex-col border-r border-border/80 bg-card/96 px-4 py-5 text-card-foreground shadow-[18px_0_40px_rgba(15,23,42,0.18)] backdrop-blur-2xl">
         <div className="flex items-center justify-between gap-3">
           <div className="text-sm font-black text-foreground">Buddy Study</div>
           <button
             aria-label="Đóng menu"
-            className="grid h-11 w-11 place-items-center rounded-xl bg-muted text-foreground"
+            className="grid h-11 w-11 place-items-center rounded-xl border border-border/80 bg-muted/75 text-foreground transition hover:bg-card"
             onClick={() => setIsMobileMenuOpen(false)}
             type="button"
           >
@@ -334,20 +340,28 @@ export function AppLayout() {
           </button>
         </div>
 
-        <Link className="mt-5 block rounded-2xl border border-border bg-muted p-4 transition hover:border-primary/25 hover:bg-card" to="/profile">
+        <Link
+          className="mt-5 block rounded-2xl border border-border/80 bg-muted/72 p-4 shadow-sm transition hover:border-primary/25 hover:bg-card/92"
+          to="/profile"
+        >
           <div className="flex items-center gap-3">
-            <BuddyAvatar emoji={activeBuddy.emoji} fallbackImage={activeBuddy.fallbackImage} size="sm" variant={activeBuddy.id as any} />
+            <BuddyAvatar
+              emoji={activeBuddy.emoji}
+              fallbackImage={activeBuddy.fallbackImage}
+              size="sm"
+              variant={activeBuddy.id as any}
+            />
             <div className="min-w-0">
               <p className="truncate text-base font-black text-foreground">{activeBuddy.name}</p>
               <p className="text-sm font-semibold text-muted-foreground">{isGuest ? "Guest Pass" : currentRole}</p>
             </div>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-card px-3 py-3 text-center shadow-sm">
+            <div className="rounded-2xl border border-border/75 bg-card/92 px-3 py-3 text-center shadow-sm">
               <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Xu</p>
               <p className="mt-1 text-lg font-black text-foreground">{learningStats.coins.toLocaleString("vi-VN")}</p>
             </div>
-            <div className="rounded-2xl bg-card px-3 py-3 text-center shadow-sm">
+            <div className="rounded-2xl border border-border/75 bg-card/92 px-3 py-3 text-center shadow-sm">
               <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Streak</p>
               <p className="mt-1 text-lg font-black text-foreground">{learningStats.streak} ngày</p>
             </div>
@@ -371,20 +385,29 @@ export function AppLayout() {
 
   return (
     <div className="app-shell min-h-screen text-foreground">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[276px] border-r border-border/75 bg-card/84 px-5 py-6 shadow-[16px_0_48px_rgba(15,23,42,0.06)] backdrop-blur-2xl lg:flex lg:flex-col lg:overflow-hidden">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[276px] border-r border-border/75 bg-card/84 px-5 py-6 shadow-[16px_0_48px_rgba(15,23,42,0.06)] backdrop-blur-2xl lg:flex lg:flex-col lg:overflow-hidden dark:shadow-[16px_0_44px_rgba(2,6,23,0.24)]">
         <Link to="/dashboard">
           <StudyBuddyLogo />
         </Link>
 
         <nav className="mt-9 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">{navItems.map((item) => renderNavLink(item))}</nav>
 
-        <div className="mt-6 rounded-xl border border-border bg-card p-4 shadow-sm">
+        <div className="mt-6 rounded-xl border border-border/80 bg-card/88 p-4 shadow-sm backdrop-blur">
           <div className="flex items-center gap-3">
-              <BuddyAvatar emoji={activeBuddy.emoji} fallbackImage={activeBuddy.fallbackImage} size="sm" variant={activeBuddy.id as any} />
+            <BuddyAvatar
+              emoji={activeBuddy.emoji}
+              fallbackImage={activeBuddy.fallbackImage}
+              size="sm"
+              variant={activeBuddy.id as any}
+            />
             <div className="min-w-0">
-              <p className="truncate font-black text-foreground">{mode === "guest" ? "Guest Pass đang bật" : "Tài khoản học tập"}</p>
+              <p className="truncate font-black text-foreground">
+                {mode === "guest" ? "Guest Pass đang bật" : "Tài khoản học tập"}
+              </p>
               <p className="mt-0.5 line-clamp-2 text-sm leading-5 text-muted-foreground">
-                {mode === "guest" ? "Nâng cấp để lưu tiến độ và đồng bộ hồ sơ." : "Mở profile và session học tập."}
+                {mode === "guest"
+                  ? "Nâng cấp để lưu tiến độ và đồng bộ hồ sơ."
+                  : "Mở profile và session học tập."}
               </p>
             </div>
           </div>
@@ -397,13 +420,13 @@ export function AppLayout() {
 
       {typeof document !== "undefined" ? createPortal(mobileMenu, document.body) : null}
 
-      <div className="lg:pl-[276px]">
-        <header className="relative z-40 border-b border-border/80 bg-background/92 px-3 py-2 backdrop-blur-xl lg:sticky lg:top-0 lg:px-7 lg:py-3 lg:backdrop-blur-2xl">
+      <div className="min-w-0 lg:pl-[276px]">
+        <header className="relative z-40 border-b border-border/70 bg-background/88 px-3 py-2 shadow-[0_14px_36px_rgba(15,23,42,0.05)] backdrop-blur-xl lg:sticky lg:top-0 lg:px-7 lg:py-3 lg:backdrop-blur-2xl dark:shadow-[0_18px_44px_rgba(2,6,23,0.28)]">
           <div className="mx-auto flex h-14 max-w-[1500px] items-center justify-between gap-3 lg:h-auto lg:min-h-[4rem] lg:flex-wrap lg:gap-y-3 2xl:flex-nowrap 2xl:gap-4">
             <div className="flex items-center gap-3 lg:hidden">
               <button
                 aria-label="Mở menu"
-                className="grid h-11 w-11 place-items-center rounded-xl bg-card text-card-foreground shadow-sm"
+                className="grid h-11 w-11 place-items-center rounded-xl border border-border/80 bg-card/92 text-card-foreground shadow-sm transition hover:-translate-y-0.5 hover:border-primary/25 hover:bg-muted/70"
                 onClick={() => setIsMobileMenuOpen(true)}
                 type="button"
               >
@@ -413,8 +436,19 @@ export function AppLayout() {
             </div>
 
             <div className="hidden min-w-0 flex-1 flex-wrap items-center gap-2 xl:flex 2xl:flex-nowrap 2xl:gap-3">
-              <MetricCard current={learningStats.xp} icon={<Sparkles size={24} />} label={`Level ${learningStats.level}`} max={learningStats.nextLevelXp} value={`${learningStats.xp} XP`} wide />
-              <MetricCard icon={<Wallet className="text-amber-500" size={23} />} label="Xu" value={learningStats.coins.toLocaleString("vi-VN")} />
+              <MetricCard
+                current={learningStats.xp}
+                icon={<Sparkles size={24} />}
+                label={`Level ${learningStats.level}`}
+                max={learningStats.nextLevelXp}
+                value={`${learningStats.xp} XP`}
+                wide
+              />
+              <MetricCard
+                icon={<Wallet className="text-amber-500" size={23} />}
+                label="Xu"
+                value={learningStats.coins.toLocaleString("vi-VN")}
+              />
               <div className="relative" ref={streakPopoverRef}>
                 <MetricCard
                   icon={<Flame className="text-orange-500" size={24} />}
@@ -432,14 +466,14 @@ export function AppLayout() {
               <ThemeToggle compact />
               <HeaderNotificationsPopover />
               <button
-                className="hidden h-11 w-11 place-items-center rounded-xl border border-border bg-card text-sky-600 shadow-sm transition hover:-translate-y-0.5"
+                className="hidden h-11 w-11 place-items-center rounded-xl border border-border/80 bg-card/92 text-sky-600 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/25 hover:bg-muted/70"
                 title="Phần thưởng"
                 type="button"
               >
                 <Gift size={20} />
               </button>
               <button
-                className="hidden relative h-11 w-11 place-items-center rounded-xl border border-border bg-card text-muted-foreground shadow-sm transition hover:-translate-y-0.5"
+                className="relative hidden h-11 w-11 place-items-center rounded-xl border border-border/80 bg-card/92 text-muted-foreground shadow-sm transition hover:-translate-y-0.5 hover:border-primary/25 hover:bg-muted/70"
                 title="Thông báo"
                 type="button"
               >
@@ -449,10 +483,10 @@ export function AppLayout() {
 
               <Link
                 aria-expanded={isGuest ? isGuestHeaderExpanded : undefined}
-                className={`group relative overflow-hidden rounded-xl border shadow-sm transition-[width,transform,border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 ${
+                className={`group relative overflow-hidden rounded-xl border shadow-sm transition-[width,transform,border-color,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 ${
                   isGuest
-                    ? `${isGuestHeaderExpanded ? "w-32 justify-start sm:w-36" : "w-11 justify-center sm:w-12"} flex h-11 items-center border-amber-300/60 bg-gradient-to-r from-amber-100/95 via-orange-100/90 to-pink-100/85 text-amber-950 dark:border-amber-300/25 dark:from-amber-500/20 dark:via-orange-500/16 dark:to-pink-500/20 dark:text-amber-50 sm:h-12`
-                    : "flex h-11 min-w-0 max-w-[52px] items-center justify-center gap-2 border-border bg-card px-0 py-1.5 text-foreground min-[1600px]:max-w-[220px] min-[1600px]:justify-start min-[1600px]:px-3 sm:h-12 sm:gap-3"
+                    ? `${isGuestHeaderExpanded ? "w-32 justify-start sm:w-36" : "w-11 justify-center sm:w-12"} flex h-11 items-center border-amber-300/45 bg-gradient-to-r from-amber-100/90 via-orange-100/82 to-rose-100/76 text-amber-950 shadow-[0_12px_30px_rgba(245,158,11,0.12)] dark:border-amber-300/18 dark:from-amber-500/16 dark:via-orange-500/12 dark:to-rose-500/14 dark:text-amber-50 dark:shadow-[0_14px_34px_rgba(15,23,42,0.22)] sm:h-12`
+                    : "flex h-11 min-w-0 max-w-[52px] items-center justify-center gap-2 border-border/80 bg-card/92 px-0 py-1.5 text-foreground shadow-[0_8px_24px_rgba(15,23,42,0.06)] min-[1600px]:max-w-[220px] min-[1600px]:justify-start min-[1600px]:px-3 dark:shadow-[0_10px_28px_rgba(2,6,23,0.2)] sm:h-12 sm:gap-3"
                 }`}
                 onBlur={() => {
                   if (isGuest) setIsGuestHeaderExpanded(false);
@@ -471,12 +505,8 @@ export function AppLayout() {
                 {isGuest ? (
                   <>
                     <motion.div
-                      animate={
-                        isGuestHeaderExpanded
-                          ? { opacity: 1, x: 0 }
-                          : { opacity: 0.72, x: -18 }
-                      }
-                      className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/55 to-transparent dark:via-white/12"
+                      animate={isGuestHeaderExpanded ? { opacity: 1, x: 0 } : { opacity: 0.72, x: -18 }}
+                      className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/45 to-transparent dark:via-white/10"
                       initial={false}
                       transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
                     />
@@ -486,19 +516,15 @@ export function AppLayout() {
                 <div
                   className={`relative z-10 grid shrink-0 place-items-center text-xs font-black ${
                     isGuest
-                      ? "h-11 w-11 rounded-xl bg-white/55 text-amber-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] dark:bg-slate-950/25 dark:text-amber-50 sm:h-12 sm:w-12 sm:text-sm"
-                      : "h-8 w-8 rounded-lg bg-primary text-primary-foreground sm:h-10 sm:w-10 sm:text-sm"
+                      ? "h-11 w-11 rounded-xl border border-white/40 bg-white/42 text-amber-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] dark:border-white/10 dark:bg-slate-950/18 dark:text-amber-50 sm:h-12 sm:w-12 sm:text-sm"
+                      : "h-8 w-8 rounded-lg bg-primary text-primary-foreground shadow-sm sm:h-10 sm:w-10 sm:text-sm"
                   }`}
                 >
                   {user?.avatar ?? "SL"}
                 </div>
                 {isGuest ? (
                   <motion.div
-                    animate={
-                      isGuestHeaderExpanded
-                        ? { maxWidth: 92, opacity: 1 }
-                        : { maxWidth: 0, opacity: 0 }
-                    }
+                    animate={isGuestHeaderExpanded ? { maxWidth: 92, opacity: 1 } : { maxWidth: 0, opacity: 0 }}
                     className="relative z-10 flex min-w-0 items-center overflow-hidden"
                     initial={false}
                     transition={{
@@ -507,11 +533,7 @@ export function AppLayout() {
                     }}
                   >
                     <motion.div
-                      animate={
-                        isGuestHeaderExpanded
-                          ? { opacity: 1, x: 0 }
-                          : { opacity: 0, x: -10 }
-                      }
+                      animate={isGuestHeaderExpanded ? { opacity: 1, x: 0 } : { opacity: 0, x: -10 }}
                       className="flex min-w-0 items-center gap-2 pl-2.5 pr-2"
                       initial={false}
                       transition={{
@@ -519,7 +541,7 @@ export function AppLayout() {
                         duration: isGuestHeaderExpanded ? 0.26 : 0.18,
                         ease: [0.22, 1, 0.36, 1],
                       }}
-                      >
+                    >
                       <p className="truncate text-sm font-black text-amber-950 dark:text-amber-50">Guest Pass</p>
                       <motion.div
                         animate={isGuestHeaderExpanded ? { x: 0, opacity: 1 } : { x: -6, opacity: 0 }}
@@ -541,13 +563,16 @@ export function AppLayout() {
                       <p className="max-w-[150px] truncate text-sm font-black">{user?.name ?? "Study learner"}</p>
                       <p className="text-xs font-semibold text-muted-foreground">{currentRole}</p>
                     </div>
-                    <ChevronRight className="hidden text-muted-foreground transition group-hover:translate-x-0.5 min-[1600px]:block" size={17} />
+                    <ChevronRight
+                      className="hidden text-muted-foreground transition group-hover:translate-x-0.5 min-[1600px]:block"
+                      size={17}
+                    />
                   </>
                 )}
               </Link>
 
               <button
-                className="hidden h-11 w-11 place-items-center rounded-xl border border-border bg-card text-muted-foreground shadow-sm transition hover:-translate-y-0.5 sm:grid sm:h-12 sm:w-12"
+                className="hidden h-11 w-11 place-items-center rounded-xl border border-border/80 bg-card/92 text-muted-foreground shadow-sm transition hover:-translate-y-0.5 hover:border-primary/25 hover:bg-muted/70 sm:grid sm:h-12 sm:w-12"
                 onClick={handleLogout}
                 title="Đăng xuất"
                 type="button"
@@ -564,7 +589,7 @@ export function AppLayout() {
           </div>
         ) : null}
 
-        <main className="mx-auto min-h-[calc(100vh-5.75rem)] max-w-[1500px] min-w-0 px-4 py-6 sm:px-6 lg:px-7 lg:pt-8">
+        <main className="mx-auto min-h-[calc(100vh-5.75rem)] max-w-[1500px] min-w-0 overflow-x-clip px-4 py-6 sm:px-6 lg:px-7 lg:pt-8">
           <Outlet />
         </main>
       </div>

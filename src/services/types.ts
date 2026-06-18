@@ -132,6 +132,7 @@ export type ProgressSummary = {
   studyTime: string;
   weeklyActivity: number[];
   xp7Days: number[];
+  xp7DayLabels?: string[];
   topicProgress: Array<{ topic: string; score: number }>;
   strongTopics: string[];
   weakTopics: string[];
