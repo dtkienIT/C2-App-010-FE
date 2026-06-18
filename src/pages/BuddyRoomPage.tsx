@@ -1346,7 +1346,7 @@ export function BuddyRoomPage() {
             isStudyReminderUIHidden ? (
               <div className="flex justify-end">
                 <button
-                  className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-black text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                    className="rounded-xl border border-border/80 bg-card/90 px-3 py-2 text-xs font-black text-muted-foreground shadow-sm transition hover:bg-muted hover:text-foreground"
                   onClick={() => setIsStudyReminderUIHidden(false)}
                   type="button"
                 >
@@ -1357,7 +1357,7 @@ export function BuddyRoomPage() {
               <>
                 <div className="flex justify-end">
                   <button
-                    className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-black text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                    className="rounded-xl border border-border/80 bg-card/90 px-3 py-2 text-xs font-black text-muted-foreground shadow-sm transition hover:bg-muted hover:text-foreground"
                     onClick={() => setIsStudyReminderUIHidden(true)}
                     type="button"
                   >

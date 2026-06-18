@@ -1,7 +1,7 @@
-import { ArrowRight, Brain, CheckCircle2, LockKeyhole, RotateCcw, X } from "lucide-react";
+import { ArrowRight, Brain, CheckCircle2, RotateCcw } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
+import { GuestAuthPromptModal } from "../GuestAuthPromptModal";
 import { generateQuiz, submitGeneratedQuizAttempt } from "../../services/quizzesApi";
 import type { Quiz, QuizAttempt } from "../../services/types";
 import { emitUserStatsUpdated } from "../../services/userStatsEvents";
@@ -15,7 +15,6 @@ type MiniQuizPhase = "idle" | "selecting" | "loading" | "ready" | "submitted";
 
 export function MiniQuizPanel({ compact = false, onCompleted }: MiniQuizPanelProps) {
   const { mode } = useAuth();
-  const navigate = useNavigate();
   const [phase, setPhase] = useState<MiniQuizPhase>("idle");
   const [questionCount, setQuestionCount] = useState<1 | 2 | 3 | null>(null);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
@@ -109,49 +108,10 @@ export function MiniQuizPanel({ compact = false, onCompleted }: MiniQuizPanelPro
   return (
     <section className={`rounded-[1.5rem] border border-border/70 bg-card/92 shadow-soft ${compact ? "p-3" : "p-4"}`}>
       {isAuthPromptOpen ? (
-        <div className="fixed inset-0 z-[100000] grid place-items-center bg-slate-950/45 px-4 backdrop-blur-sm" role="dialog" aria-modal="true">
-          <div className="w-full max-w-[26rem] rounded-[1.5rem] border border-border bg-card p-5 text-card-foreground shadow-2xl">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary">
-                  <LockKeyhole size={20} />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">Can dang nhap</p>
-                  <h3 className="mt-1 text-xl font-black text-foreground">Dang nhap de lam mini quiz</h3>
-                </div>
-              </div>
-              <button
-                aria-label="Dong popup dang nhap"
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                onClick={() => setIsAuthPromptOpen(false)}
-                type="button"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <p className="mt-4 text-sm font-semibold leading-6 text-muted-foreground">
-              Guest Pass chi dung de xem thu giao dien. Dang nhap hoac nang cap tai khoan de tao quiz, luu XP, coin va reward cho Buddy.
-            </p>
-
-            <div className="mt-5 grid gap-2 sm:grid-cols-2">
-              <button
-                className="primary-button justify-center rounded-xl px-4 py-2.5 text-sm"
-                onClick={() => {
-                  setIsAuthPromptOpen(false);
-                  navigate("/auth", { state: { from: "/buddy-room", authMode: "login" } });
-                }}
-                type="button"
-              >
-                Dang nhap
-              </button>
-              <Link className="secondary-button justify-center rounded-xl px-4 py-2.5 text-sm" to="/profile">
-                Nang cap Guest Pass
-              </Link>
-            </div>
-          </div>
-        </div>
+        <GuestAuthPromptModal
+          description="Bạn cần đăng nhập hoặc nâng cấp Guest Pass để tạo quiz, lưu XP, coin và reward cho Buddy."
+          onClose={() => setIsAuthPromptOpen(false)}
+        />
       ) : null}
 
       <div className="flex items-center gap-3">
