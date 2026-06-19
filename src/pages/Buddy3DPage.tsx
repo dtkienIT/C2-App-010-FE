@@ -97,7 +97,7 @@ export function Buddy3DPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" data-onboarding="shop-page">
       <UnlockCelebrationModal
         cost={celebration?.cost ?? 0}
         itemKind={celebration?.itemKind ?? "model"}
@@ -171,6 +171,7 @@ export function Buddy3DPage() {
 
                 <button
                   className={`${isActive ? "secondary-button" : "primary-button"} mt-6 w-full`}
+                  data-onboarding="shop-action"
                   disabled={busy}
                   onClick={() => void handleModelAction(model.id, model.unlocked)}
                   type="button"
@@ -234,6 +235,7 @@ export function Buddy3DPage() {
 
                 <button
                   className={`${isSelected ? "secondary-button" : "primary-button"} mt-5 w-full`}
+                  data-onboarding="shop-action"
                   disabled={busy}
                   onClick={() => void handleBackgroundAction(background.id, background.unlocked)}
                   type="button"

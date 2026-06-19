@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { OnboardingProvider } from "../features/onboarding";
 import { UserStatsProvider } from "../features/user-stats/UserStatsProvider";
 import { AppLayout } from "../layouts/AppLayout";
 import { AuthPage } from "../pages/AuthPage";
@@ -53,7 +54,9 @@ function ProtectedApp() {
 
   return (
     <UserStatsProvider>
-      <AppLayout />
+      <OnboardingProvider>
+        <AppLayout />
+      </OnboardingProvider>
     </UserStatsProvider>
   );
 }

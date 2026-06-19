@@ -44,7 +44,7 @@ export function QuizPomodoroEntry({
         </div>
       </div>
 
-      <button className="primary-button mt-4 w-full justify-center" onClick={onStartBreak} type="button">
+      <button className="primary-button mt-4 w-full justify-center" data-onboarding="pomodoro-entry" onClick={onStartBreak} type="button">
         <PlayCircle size={18} />
         Bắt đầu break với Buddy
       </button>

@@ -165,16 +165,16 @@ export function QuizPage() {
   }
 
   if (mode === "guest") {
-    return <Card className="p-6 text-center font-bold text-muted-foreground">Đăng nhập để làm quiz thật và lưu XP/coin.</Card>;
+    return <Card className="p-6 text-center font-bold text-muted-foreground" data-onboarding="quiz-page">Đăng nhập để làm quiz thật và lưu XP/coin.</Card>;
   }
 
   if (!quiz) {
-    return <Card className="p-6 text-center font-black text-foreground">Đang tải quiz...</Card>;
+    return <Card className="p-6 text-center font-black text-foreground" data-onboarding="quiz-page">Đang tải quiz...</Card>;
   }
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1fr_330px]">
-      <Card className="p-6 md:p-8">
+      <Card className="p-6 md:p-8" data-onboarding="quiz-page">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <span className="soft-chip">Grammar mission</span>
@@ -233,7 +233,13 @@ export function QuizPage() {
           <Link className="secondary-button" to="/dashboard">
             Quay lại
           </Link>
-          <button className="primary-button disabled:opacity-55" disabled={!allAnswered || isSubmitting} onClick={() => void handleSubmit()} type="button">
+          <button
+            className="primary-button disabled:opacity-55"
+            data-onboarding="quiz-action"
+            disabled={!allAnswered || isSubmitting}
+            onClick={() => void handleSubmit()}
+            type="button"
+          >
             {isSubmitting ? "Đang nộp..." : "Nộp bài"}
             <ArrowRight size={18} />
           </button>

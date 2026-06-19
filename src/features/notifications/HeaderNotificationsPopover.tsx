@@ -165,7 +165,7 @@ export function HeaderNotificationsPopover() {
   }
 
   return (
-    <div className="relative hidden sm:block" ref={containerRef}>
+    <div className="relative hidden sm:block" data-onboarding="notifications-entry" ref={containerRef}>
       <button
         className="relative grid h-12 w-12 place-items-center rounded-xl border border-border bg-card text-muted-foreground shadow-sm transition hover:-translate-y-0.5 hover:text-foreground"
         onClick={() => setIsOpen((current) => !current)}

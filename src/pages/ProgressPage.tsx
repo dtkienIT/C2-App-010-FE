@@ -21,7 +21,7 @@ const defaultWeekLabels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
 function ProgressPageLoading() {
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6" data-onboarding="progress-statistics">
       <Card className="overflow-hidden p-0">
         <div className="animate-pulse space-y-6 p-6 md:p-8">
           <div className="h-4 w-24 rounded-full bg-muted" />
@@ -60,7 +60,7 @@ type StatusCardProps = {
 
 function StatusCard({ actionLabel, description, onAction, title }: StatusCardProps) {
   return (
-    <Card className="mx-auto max-w-3xl p-8 text-center">
+    <Card className="mx-auto max-w-3xl p-8 text-center" data-onboarding="progress-statistics">
       <div className="mx-auto flex max-w-xl flex-col items-center gap-4">
         <div className="primary-soft grid h-14 w-14 place-items-center rounded-3xl text-brand-700 dark:text-violet-200">
           <Bot size={24} />
@@ -229,7 +229,7 @@ export function ProgressPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6" data-onboarding="progress-statistics">
       <section className="hero-surface overflow-hidden rounded-[1.9rem] p-6 md:p-8">
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_360px] xl:items-start">
           <div className="min-w-0 space-y-5">
@@ -259,7 +259,7 @@ export function ProgressPage() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <Link className="primary-button" to="/quiz">
+              <Link className="primary-button" data-onboarding="progress-action" to="/quiz">
                 Làm quiz tiếp
                 <ArrowRight size={16} />
               </Link>
@@ -294,7 +294,7 @@ export function ProgressPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" data-onboarding="progress-statistics">
         <StatCard icon={Clock} label="Tổng thời gian học" value={progress.studyTime} tone="blue" />
         <StatCard icon={Trophy} label="Quiz hoàn thành" value={String(progress.quizCompleted ?? progress.totalQuizzes)} tone="violet" />
         <StatCard icon={Target} label="Độ chính xác" value={`${progress.accuracy}%`} tone="green" />
@@ -432,7 +432,7 @@ export function ProgressPage() {
                 Hiện các chỉ số thật của bạn vẫn còn ít. Khi có thêm quiz, thời gian học và XP trong tuần, trang Thống kê sẽ tự động đầy đủ hơn.
               </p>
             </div>
-            <Link className="secondary-button" to="/quiz">
+            <Link className="secondary-button" data-onboarding="progress-action" to="/quiz">
               Bắt đầu một quiz
             </Link>
           </div>

@@ -276,7 +276,7 @@ export function StudyReminderSettings() {
   }
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-border/80 bg-card/95 p-4 shadow-soft backdrop-blur">
+    <section className="overflow-hidden rounded-2xl border border-border/80 bg-card/95 p-4 shadow-soft backdrop-blur" data-onboarding="reminders-settings">
       {isTimePickerOpen ? (
         <TimePickerDialog
           onClose={() => setIsTimePickerOpen(false)}

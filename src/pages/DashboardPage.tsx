@@ -109,12 +109,13 @@ export function DashboardPage() {
                 Học tập hiệu quả hơn nhờ buddy AI đáng yêu nhưng vẫn chuyên nghiệp. Làm quiz, nhận thưởng, nuôi buddy và nhận gợi ý học tiếp theo tiến độ của bạn.
               </p>
               <div className="mt-7 flex flex-wrap gap-3">
-                <Link className="primary-button" to="/quiz">
+                <Link className="primary-button" data-onboarding="home-start-quiz" to="/quiz">
                   Làm quiz ngay
                   <ArrowRight size={18} />
                 </Link>
                 <button
                   className="secondary-button"
+                  data-onboarding="buddy-room-entry"
                   onClick={() => navigate("/buddy-room")}
                   type="button"
                 >
@@ -192,7 +193,7 @@ export function DashboardPage() {
           </Link>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-6" data-onboarding="dashboard-progress">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-2xl font-black text-foreground">Tiến độ của bạn</h2>

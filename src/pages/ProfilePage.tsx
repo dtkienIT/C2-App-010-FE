@@ -3,6 +3,7 @@ import { Crown, Flame, LogOut, Mail, RefreshCcw, ShieldCheck, Sparkles, Ticket, 
 import { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { useOnboarding } from "../features/onboarding";
 import { useUserStats } from "../features/user-stats/UserStatsProvider";
 import { apiClient } from "../services/apiClient";
 import { resendVerificationOtpWithApi } from "../services/authApi";
@@ -48,6 +49,7 @@ function maskEmail(email: string) {
 export function ProfilePage() {
   const { user, mode, register, verifyEmail, logout } = useAuth();
   const { stats: liveStats } = useUserStats();
+  const { startReplayOnboarding } = useOnboarding();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -358,7 +360,7 @@ export function ProfilePage() {
             ))}
           </div>
 
-          <div className="soft-panel mt-6 rounded-2xl p-5">
+          <div className="soft-panel mt-6 rounded-2xl p-5" data-onboarding="profile-settings">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="font-black text-foreground">Trạng thái phiên</p>
@@ -371,6 +373,10 @@ export function ProfilePage() {
               <button className="secondary-button" onClick={handleLogout} type="button">
                 <LogOut size={18} />
                 Đăng xuất
+              </button>
+              <button className="secondary-button" onClick={startReplayOnboarding} type="button">
+                <Sparkles size={18} />
+                Xem lại hướng dẫn
               </button>
             </div>
           </div>

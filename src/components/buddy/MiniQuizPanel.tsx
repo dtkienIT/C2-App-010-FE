@@ -142,7 +142,7 @@ export function MiniQuizPanel({ compact = false, onCompleted }: MiniQuizPanelPro
           <p className="text-sm font-semibold leading-6 text-muted-foreground">
             Làm một mini quiz ngắn để lấy thêm XP, coin và tăng chỉ số Buddy ngay trong room.
           </p>
-          <button className="primary-button w-full justify-center" onClick={startMiniQuiz} type="button">
+          <button className="primary-button w-full justify-center" data-onboarding="buddy-mini-quiz-action" onClick={startMiniQuiz} type="button">
             Bắt đầu mini quiz
             <ArrowRight size={16} />
           </button>

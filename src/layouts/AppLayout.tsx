@@ -28,6 +28,11 @@ import { readActiveQuizPomodoroSession } from "../components/buddy/quizPomodoroB
 import { ThemeToggle } from "../components/ThemeToggle";
 import { useActiveBuddy } from "../components/buddy/useActiveBuddy";
 import { HeaderNotificationsPopover } from "../features/notifications/HeaderNotificationsPopover";
+import {
+  ONBOARDING_CLOSE_MOBILE_MENU_EVENT,
+  ONBOARDING_OPEN_MOBILE_MENU_EVENT,
+  useOnboarding,
+} from "../features/onboarding";
 import { useUserStats } from "../features/user-stats/UserStatsProvider";
 import { StudyBuddyLogo } from "../components/StudyBuddyLogo";
 
@@ -59,6 +64,7 @@ function MetricCard({
   interactive = false,
   isActive = false,
   onClick,
+  dataOnboarding,
 }: {
   icon: ReactNode;
   label: string;
@@ -69,6 +75,7 @@ function MetricCard({
   interactive?: boolean;
   isActive?: boolean;
   onClick?: () => void;
+  dataOnboarding?: string;
 }) {
   const progressValue = current && max ? (current / max) * 100 : 0;
   const content = (
@@ -78,6 +85,7 @@ function MetricCard({
           ? "basis-[210px] min-w-[190px] xl:basis-[228px] xl:min-w-[208px] min-[1600px]:basis-[280px] min-[1600px]:min-w-[240px] 2xl:basis-[390px] 2xl:min-w-[390px]"
           : "basis-[96px] min-w-[88px] xl:basis-[104px] xl:min-w-[96px] min-[1600px]:basis-[132px] min-[1600px]:min-w-[120px] 2xl:basis-[160px] 2xl:min-w-[160px]"
       } ${interactive ? "cursor-pointer transition hover:-translate-y-0.5 hover:border-primary/35" : ""} ${isActive ? "border-primary/35 ring-2 ring-primary/10" : ""}`}
+      data-onboarding={dataOnboarding}
     >
       <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted text-accent min-[1600px]:h-10 min-[1600px]:w-10 2xl:h-11 2xl:w-11">
         {icon}
@@ -119,6 +127,7 @@ function MetricCard({
 export function AppLayout() {
   const { user, mode, logout } = useAuth();
   const { stats } = useUserStats();
+  const { startReplayOnboarding } = useOnboarding();
   const { activeBuddy } = useActiveBuddy();
   const navigate = useNavigate();
   const location = useLocation();
@@ -134,6 +143,17 @@ export function AppLayout() {
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    const openMobileMenuForOnboarding = () => setIsMobileMenuOpen(true);
+    const closeMobileMenuForOnboarding = () => setIsMobileMenuOpen(false);
+    window.addEventListener(ONBOARDING_OPEN_MOBILE_MENU_EVENT, openMobileMenuForOnboarding);
+    window.addEventListener(ONBOARDING_CLOSE_MOBILE_MENU_EVENT, closeMobileMenuForOnboarding);
+    return () => {
+      window.removeEventListener(ONBOARDING_OPEN_MOBILE_MENU_EVENT, openMobileMenuForOnboarding);
+      window.removeEventListener(ONBOARDING_CLOSE_MOBILE_MENU_EVENT, closeMobileMenuForOnboarding);
+    };
+  }, []);
 
   useEffect(() => {
     const syncQuizSession = () => {
@@ -190,6 +210,11 @@ export function AppLayout() {
     navigate("/auth", { replace: true });
   }
 
+  function handleReplayGuide() {
+    setIsMobileMenuOpen(false);
+    startReplayOnboarding();
+  }
+
   const learningStats = {
     level: stats?.level ?? 0,
     xp: stats?.xp ?? 0,
@@ -212,6 +237,17 @@ export function AppLayout() {
     return (
       <NavLink
         aria-disabled={isLockedTarget}
+        data-onboarding={
+          item.to === "/buddy-room"
+            ? "nav-buddy-room"
+            : item.to === "/quiz"
+              ? "nav-quiz"
+              : item.to === "/buddy-3d"
+                ? "nav-shop"
+                : item.to === "/progress"
+                  ? "nav-progress"
+                  : undefined
+        }
         onClick={isLockedTarget ? openLockedPrompt : undefined}
         className={({ isActive }) =>
           mobile
@@ -317,8 +353,8 @@ export function AppLayout() {
               <p className="text-sm font-semibold text-muted-foreground">{isGuest ? "Guest Pass" : currentRole}</p>
             </div>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-border/75 bg-white px-3 py-3 text-center shadow-sm dark:bg-background">
+          <div className="mt-4 grid grid-cols-2 gap-3" data-onboarding="mobile-progress">
+            <div className="rounded-2xl border border-border/75 bg-white px-3 py-3 text-center shadow-sm dark:bg-background" data-onboarding="mobile-coins">
               <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Xu</p>
               <p className="mt-1 text-lg font-black text-foreground">{learningStats.coins.toLocaleString("vi-VN")}</p>
             </div>
@@ -333,6 +369,9 @@ export function AppLayout() {
 
         <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl border border-border/70 bg-white/72 p-3 shadow-sm dark:bg-transparent dark:p-0 dark:shadow-none">
           <ThemeToggle className="col-span-2 justify-center" />
+          <button className="secondary-button col-span-2 justify-center" onClick={handleReplayGuide} type="button">
+            Xem lại hướng dẫn
+          </button>
           <Link className="secondary-button justify-center" to="/profile">
             Hồ sơ
           </Link>
@@ -375,6 +414,9 @@ export function AppLayout() {
           <Link className="primary-button mt-4 w-full rounded-xl py-2.5 text-sm" to="/profile">
             {mode === "guest" ? "Nâng cấp Guest Pass" : "Mở profile"}
           </Link>
+          <button className="secondary-button mt-3 w-full justify-center rounded-xl py-2.5 text-sm" onClick={handleReplayGuide} type="button">
+            Xem lại hướng dẫn
+          </button>
           <ThemeToggle className="mt-3 w-full justify-center" />
         </div>
       </aside>
@@ -387,6 +429,7 @@ export function AppLayout() {
             <div className="flex items-center gap-3 lg:hidden">
               <button
                 aria-label="Mở menu"
+                data-onboarding="mobile-menu"
                 className="grid h-11 w-11 place-items-center rounded-xl border border-border/80 bg-card/92 text-card-foreground shadow-sm transition hover:-translate-y-0.5 hover:border-primary/25 hover:bg-muted/70"
                 onClick={() => setIsMobileMenuOpen(true)}
                 type="button"
@@ -396,7 +439,7 @@ export function AppLayout() {
               <div className="text-sm font-black text-foreground">Buddy Study</div>
             </div>
 
-            <div className="hidden min-w-0 flex-1 flex-wrap items-center gap-2 xl:flex 2xl:flex-nowrap 2xl:gap-3">
+            <div className="hidden min-w-0 flex-1 flex-wrap items-center gap-2 xl:flex 2xl:flex-nowrap 2xl:gap-3" data-onboarding="header-progress">
               <MetricCard
                 current={learningStats.xp}
                 icon={<Sparkles size={24} />}
@@ -407,6 +450,7 @@ export function AppLayout() {
               />
               <MetricCard
                 icon={<Wallet className="text-amber-500" size={23} />}
+                dataOnboarding="header-coins"
                 label="Xu"
                 value={learningStats.coins.toLocaleString("vi-VN")}
               />

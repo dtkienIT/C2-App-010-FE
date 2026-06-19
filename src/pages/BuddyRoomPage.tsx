@@ -1059,7 +1059,7 @@ export function BuddyRoomPage() {
   const isFullScreenClass = "min-w-0 overflow-hidden rounded-[2rem] border border-border/80 bg-card/72 p-4 text-card-foreground shadow-[0_28px_90px_rgba(15,23,42,0.12)] backdrop-blur md:p-6 relative";
 
   return (
-    <div className="mx-auto max-w-screen-2xl space-y-6">
+    <div className="mx-auto max-w-screen-2xl space-y-6" data-onboarding="buddy-room-page">
       {isQuizLocked ? (
         <section className="rounded-[1.5rem] border border-sky-200 bg-sky-50 p-5 text-sky-950 shadow-soft">
           <p className="text-xs font-black uppercase tracking-[0.14em]">Quiz đang mở</p>
@@ -1199,6 +1199,7 @@ export function BuddyRoomPage() {
                   <motion.div
                     animate={rewardAnimation}
                     className={`relative z-10 mx-auto w-full max-w-[980px] outline-none ${isQuizLocked ? "cursor-not-allowed" : "cursor-pointer"}`}
+                    data-onboarding="buddy-room-action"
                     onClick={handleBuddyTap}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
@@ -1386,7 +1387,7 @@ export function BuddyRoomPage() {
               onReturnNow={returnToQuiz}
             />
           ) : (
-            <section className="rounded-[1.5rem] border border-border/70 bg-card/90 p-4 shadow-soft">
+            <section className="rounded-[1.5rem] border border-border/70 bg-card/90 p-4 shadow-soft" data-onboarding="buddy-mini-quiz">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">Pomodoro mini quiz</p>
