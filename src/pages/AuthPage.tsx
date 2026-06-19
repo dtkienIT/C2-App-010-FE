@@ -1,5 +1,5 @@
 import { isAxiosError } from "axios";
-import { ArrowRight, LockKeyhole, Mail, ShieldCheck, Sparkles, Ticket, UserRound } from "lucide-react";
+import { LockKeyhole, Mail, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
@@ -31,7 +31,7 @@ function getRedirectTarget(state: unknown) {
 }
 
 export function AuthPage() {
-  const { login, register, continueAsGuest, mode } = useAuth();
+  const { login, register, mode } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [authMode, setAuthMode] = useState<AuthMode>(() => {
@@ -77,11 +77,6 @@ export function AuthPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }
-
-  function handleGuest() {
-    continueAsGuest();
-    navigate(getRedirectTarget(location.state), { replace: true });
   }
 
   return (
@@ -202,13 +197,7 @@ export function AuthPage() {
 
               <button className="primary-button w-full rounded-xl py-3.5" disabled={isSubmitting} type="submit">
                 <UserRound size={18} />
-                {isSubmitting ? "Đang xử lý..." : authMode === "login" ? "Đăng nhập ngay" : "Tạo tài khoản"}
-              </button>
-
-              <button className="secondary-button w-full rounded-xl py-3" onClick={handleGuest} type="button">
-                <Ticket size={18} />
-                Vào thử với Guest Pass
-                <ArrowRight size={17} />
+                {isSubmitting ? "Đang xử lý..." : authMode === "login" ? "Đăng nhập" : "Tạo tài khoản"}
               </button>
             </form>
           </div>
