@@ -76,7 +76,7 @@ function getTooltipPosition(targetBox: TargetBox | null, preferredPlacement?: On
   };
 }
 
-function waitForTarget(selector: string, signal: AbortSignal) {
+function waitForTarget(selector: string, signal: AbortSignal, timeoutMs: number | null = TARGET_WAIT_MS) {
   return new Promise<Element | null>((resolve) => {
     const startedAt = Date.now();
 
@@ -92,7 +92,7 @@ function waitForTarget(selector: string, signal: AbortSignal) {
         return;
       }
 
-      if (Date.now() - startedAt >= TARGET_WAIT_MS) {
+      if (timeoutMs !== null && Date.now() - startedAt >= timeoutMs) {
         resolve(null);
         return;
       }
@@ -108,10 +108,12 @@ export function GuidedTour({
   isOpen,
   onClose,
   runId,
+  runMode = "replay",
 }: {
   isOpen: boolean;
   onClose: (completed: boolean) => void;
   runId: number;
+  runMode?: "first-time" | "replay";
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -122,6 +124,8 @@ export function GuidedTour({
   const isLastStep = stepIndex === onboardingSteps.length - 1;
   const isMobile = isMobileViewport();
   const activeTarget = isMobile && currentStep?.mobileTarget ? currentStep.mobileTarget : currentStep?.target;
+  const shouldWaitForFirstTimeTarget = runMode === "first-time" && Boolean(activeTarget);
+  const canMoveForward = !shouldWaitForFirstTimeTarget || Boolean(targetBox);
 
   function moveToStep(nextIndex: number) {
     if (nextIndex >= onboardingSteps.length) {
@@ -166,7 +170,11 @@ export function GuidedTour({
         return;
       }
 
-      const target = await waitForTarget(activeTarget, controller.signal);
+      const target = await waitForTarget(
+        activeTarget,
+        controller.signal,
+        shouldWaitForFirstTimeTarget ? null : TARGET_WAIT_MS,
+      );
       if (controller.signal.aborted) return;
 
       if (!target) {
@@ -188,7 +196,7 @@ export function GuidedTour({
     return () => {
       controller.abort();
     };
-  }, [activeTarget, currentStep, isMobile, isOpen, location.pathname, navigate, stepIndex]);
+  }, [activeTarget, currentStep, isMobile, isOpen, location.pathname, navigate, shouldWaitForFirstTimeTarget, stepIndex]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -215,6 +223,7 @@ export function GuidedTour({
         onClose(false);
       }
       if (event.key === "ArrowRight") {
+        if (!canMoveForward) return;
         moveToStep(stepIndex + 1);
       }
       if (event.key === "ArrowLeft") {
@@ -224,7 +233,7 @@ export function GuidedTour({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose, stepIndex]);
+  }, [canMoveForward, isOpen, onClose, stepIndex]);
 
   const tooltipPosition = useMemo(
     () => getTooltipPosition(targetBox, currentStep?.placement),
@@ -318,6 +327,12 @@ export function GuidedTour({
 
         <p className="mt-4 text-sm font-semibold leading-6 text-muted-foreground">{currentStep.message}</p>
 
+        {shouldWaitForFirstTimeTarget && !targetBox ? (
+          <p className="mt-4 rounded-xl border border-border/70 bg-muted/70 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">
+            Đang tải vùng hướng dẫn...
+          </p>
+        ) : null}
+
         {currentStep.mission ? (
           <div className="mt-4 rounded-[1rem] border border-emerald-300/60 bg-emerald-100/70 p-4 text-emerald-900 dark:border-emerald-400/25 dark:bg-emerald-500/12 dark:text-emerald-100">
             <div className="flex items-center gap-3">
@@ -347,14 +362,16 @@ export function GuidedTour({
             >
               <ArrowLeft size={16} />
             </button>
-            <button
-              aria-label={isLastStep ? "Hoàn thành hướng dẫn" : "Bước tiếp theo"}
-              className="primary-button h-11 w-full justify-center rounded-xl px-0 py-0 text-sm sm:w-11"
-              onClick={() => moveToStep(stepIndex + 1)}
-              type="button"
-            >
-              {isLastStep ? <CheckCircle2 size={16} /> : <ArrowRight size={16} />}
-            </button>
+            {canMoveForward ? (
+              <button
+                aria-label={isLastStep ? "Hoàn thành hướng dẫn" : "Bước tiếp theo"}
+                className="primary-button h-11 w-full justify-center rounded-xl px-0 py-0 text-sm sm:w-11"
+                onClick={() => moveToStep(stepIndex + 1)}
+                type="button"
+              >
+                {isLastStep ? <CheckCircle2 size={16} /> : <ArrowRight size={16} />}
+              </button>
+            ) : null}
           </div>
         </div>
       </section>

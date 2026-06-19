@@ -234,7 +234,7 @@ export function useCompanionModelStore() {
     setIsBuddy3DEnabled(true);
     if (typeof window !== "undefined" && window.localStorage.getItem(AUTH_TOKEN_KEY)) {
       void equipBuddy3DModel(id).catch((error) => {
-        console.warn("[Buddy3D] Backend chÆ°a lÆ°u Ä‘Æ°á»£c equipped model, giá»¯ local selection", {
+        console.warn("[Buddy3D] Backend chưa lưu được equipped model, giữ lựa chọn local", {
           modelId: id,
           status: error?.response?.status,
         });
@@ -287,3 +287,4 @@ export function useCompanionModelStore() {
     selectedBackgroundId,
   };
 }
+

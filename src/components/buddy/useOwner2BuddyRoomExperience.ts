@@ -55,6 +55,31 @@ type Owner2BuddyRoomExperience = {
 const LOW_ENERGY_THRESHOLD = 35;
 const NEWSFEED_LIMIT = 8;
 
+function repairMojibake(value?: string) {
+  if (!value) return value;
+
+  try {
+    const repaired = decodeURIComponent(escape(value));
+    return repaired === value ? value : repaired;
+  } catch {
+    return value;
+  }
+}
+
+function normalizeNewsfeedItem(item: BuddyRoomFeedItem): BuddyRoomFeedItem {
+  return {
+    ...item,
+    ctaLabel: repairMojibake(item.ctaLabel),
+    imageAlt: repairMojibake(item.imageAlt),
+    publishedAt: repairMojibake(item.publishedAt) ?? item.publishedAt,
+    source: repairMojibake(item.source) ?? item.source,
+    summary: repairMojibake(item.summary) ?? item.summary,
+    title: repairMojibake(item.title) ?? item.title,
+    topicTag: repairMojibake(item.topicTag),
+    url: item.url,
+  };
+}
+
 const dialogueFallbacks: Record<BuddyRoomDialogueContextKey, BuddyRoomDialoguePayload> = {
   room: {
     contextKey: "room",
@@ -181,7 +206,7 @@ export function useOwner2BuddyRoomExperience(args: UseOwner2BuddyRoomExperienceA
           setFeedState("empty");
           return;
         }
-        setFeedItems(items);
+        setFeedItems(items.map(normalizeNewsfeedItem));
         setFeedState("ready");
       } catch (_error) {
         if (cancelled) return;

@@ -32,6 +32,35 @@ type ApiBreakQuestResponse = {
   source: BreakQuest["source"];
 };
 
+function repairMojibake(value?: string) {
+  if (!value) return value;
+
+  try {
+    const repaired = decodeURIComponent(escape(value));
+    return repaired === value ? value : repaired;
+  } catch {
+    return value;
+  }
+}
+
+function normalizeBreakQuest<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((entry) => normalizeBreakQuest(entry)) as T;
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, entry]) => [key, normalizeBreakQuest(entry)]),
+    ) as T;
+  }
+
+  if (typeof value === "string") {
+    return repairMojibake(value) as T;
+  }
+
+  return value;
+}
+
 export async function fetchBuddyNewsfeed(limit = 8): Promise<ApiNewsfeedItem[]> {
   const response = await apiClient.get<ApiNewsfeedResponse>("/newsfeed", {
     params: { limit },
@@ -51,7 +80,7 @@ export async function generateBreakQuest(article: ApiNewsfeedItem): Promise<Brea
       imageUrl: article.imageUrl,
     },
   });
-  return response.data;
+  return normalizeBreakQuest(response.data);
 }
 
 export async function fetchMotivationalLines(): Promise<string[]> {

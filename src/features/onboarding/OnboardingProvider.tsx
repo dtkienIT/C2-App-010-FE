@@ -1,8 +1,14 @@
-import { createContext, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { createContext, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../../auth/AuthContext";
 import { GuidedTour } from "./GuidedTour";
 import { HOME_ROUTE } from "./onboardingSteps";
-import { hasSeenOnboarding, markOnboardingSeen, ONBOARDING_REPLAY_EVENT, ONBOARDING_STORAGE_KEY } from "./onboardingStorage";
+import {
+  hasSeenOnboarding,
+  markOnboardingSeen,
+  ONBOARDING_REPLAY_EVENT,
+  resetOnboardingSeen,
+} from "./onboardingStorage";
 
 type OnboardingRunMode = "first-time" | "replay";
 
@@ -18,23 +24,52 @@ export type OnboardingContextValue = {
 export const OnboardingContext = createContext<OnboardingContextValue | null>(null);
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
+  const { mode, user } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [runId, setRunId] = useState(0);
   const [runMode, setRunMode] = useState<OnboardingRunMode>("first-time");
+  const autoOpenTimerRef = useRef<number | null>(null);
+  const openTimerRef = useRef<number | null>(null);
+
+  const clearAutoOpenTimer = useCallback(() => {
+    if (autoOpenTimerRef.current === null) return;
+    window.clearTimeout(autoOpenTimerRef.current);
+    autoOpenTimerRef.current = null;
+  }, []);
+
+  const clearOpenTimer = useCallback(() => {
+    if (openTimerRef.current === null) return;
+    window.clearTimeout(openTimerRef.current);
+    openTimerRef.current = null;
+  }, []);
+
+  const getOnboardingKey = useCallback(() => {
+    if (mode === "guest") {
+      return "guest";
+    }
+    return user?.id;
+  }, [mode, user?.id]);
 
   const openFromHome = useCallback(
     (mode: OnboardingRunMode) => {
+      clearAutoOpenTimer();
+      clearOpenTimer();
+      if (mode === "first-time") {
+        markOnboardingSeen(getOnboardingKey());
+      }
       setIsTourOpen(false);
       setRunMode(mode);
       navigate(HOME_ROUTE);
 
-      window.setTimeout(() => {
+      openTimerRef.current = window.setTimeout(() => {
+        openTimerRef.current = null;
         setRunId((current) => current + 1);
         setIsTourOpen(true);
       }, 450);
     },
-    [navigate],
+    [clearAutoOpenTimer, clearOpenTimer, navigate],
   );
 
   const startOnboarding = useCallback(() => {
@@ -46,31 +81,49 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   }, [openFromHome]);
 
   const closeOnboarding = useCallback(() => {
-    if (runMode === "first-time") {
-      markOnboardingSeen();
-    }
+    clearAutoOpenTimer();
+    clearOpenTimer();
     setIsTourOpen(false);
-  }, [runMode]);
+  }, [clearAutoOpenTimer, clearOpenTimer]);
 
   const completeOnboarding = useCallback(() => {
-    if (runMode === "first-time") {
-      markOnboardingSeen();
-    }
+    clearAutoOpenTimer();
+    clearOpenTimer();
     setIsTourOpen(false);
-  }, [runMode]);
+  }, [clearAutoOpenTimer, clearOpenTimer]);
 
   const resetOnboarding = useCallback(() => {
-    window.localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+    clearAutoOpenTimer();
+    clearOpenTimer();
+    resetOnboardingSeen(getOnboardingKey());
     startOnboarding();
-  }, [startOnboarding]);
+  }, [clearAutoOpenTimer, clearOpenTimer, getOnboardingKey, startOnboarding]);
 
   useEffect(() => {
-    if (!hasSeenOnboarding()) {
-      const timer = window.setTimeout(startOnboarding, 700);
-      return () => window.clearTimeout(timer);
+    clearAutoOpenTimer();
+
+    if ((mode !== "authenticated" && mode !== "guest") || isTourOpen) {
+      return undefined;
     }
-    return undefined;
-  }, [startOnboarding]);
+
+    if (location.pathname !== HOME_ROUTE) {
+      return undefined;
+    }
+
+    if (hasSeenOnboarding(getOnboardingKey())) {
+      return undefined;
+    }
+
+    autoOpenTimerRef.current = window.setTimeout(startOnboarding, 700);
+    return clearAutoOpenTimer;
+  }, [clearAutoOpenTimer, getOnboardingKey, isTourOpen, location.pathname, mode, startOnboarding]);
+
+  useEffect(() => {
+    return () => {
+      clearAutoOpenTimer();
+      clearOpenTimer();
+    };
+  }, [clearAutoOpenTimer, clearOpenTimer]);
 
   useEffect(() => {
     const handleReplay = () => startReplayOnboarding();
@@ -103,6 +156,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
           closeOnboarding();
         }}
         runId={runId}
+        runMode={runMode}
       />
     </OnboardingContext.Provider>
   );

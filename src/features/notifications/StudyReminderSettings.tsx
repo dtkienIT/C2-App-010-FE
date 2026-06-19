@@ -19,8 +19,8 @@ const pickerHours = Array.from({ length: 12 }, (_, index) => String(index + 1).p
 const pickerMinutes = Array.from({ length: 60 }, (_, index) => String(index).padStart(2, "0"));
 
 function parseTime(value: string) {
-  const [rawHour = "20", rawMinute = "00"] = value.split(":");
-  const hour24 = Math.min(23, Math.max(0, Number(rawHour) || 20));
+  const [rawHour = "01", rawMinute = "00"] = value.split(":");
+  const hour24 = Math.min(23, Math.max(0, Number(rawHour) || 1));
   const minute = Math.min(59, Math.max(0, Number(rawMinute) || 0));
   const period: "AM" | "PM" = hour24 >= 12 ? "PM" : "AM";
   const hour12Number = hour24 % 12 || 12;
@@ -180,7 +180,7 @@ function TimePickerDialog({
 
 export function StudyReminderSettings() {
   const { isLoading, message, reminders, removeReminder, saveReminder, setReminderEnabled, timezone } = useStudyReminders();
-  const [reminderTime, setReminderTime] = useState("20:00");
+  const [reminderTime, setReminderTime] = useState("01:00");
   const [selectedDays, setSelectedDays] = useState<number[]>(defaultDays);
   const [isEnabled, setIsEnabled] = useState(true);
   const [editingId, setEditingId] = useState<string | undefined>();
@@ -223,7 +223,7 @@ export function StudyReminderSettings() {
 
   function resetForm() {
     setEditingId(undefined);
-    setReminderTime("20:00");
+    setReminderTime("01:00");
     setSelectedDays(defaultDays);
     setIsEnabled(true);
     setFormError("");

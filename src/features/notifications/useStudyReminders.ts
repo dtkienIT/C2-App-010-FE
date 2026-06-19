@@ -12,13 +12,13 @@ import type { StudyReminder } from "./notificationTypes";
 import { buildFocusModeUrl, showLocalSystemNotification } from "./webPushService";
 
 export const weekDays = [
-  { id: 1, label: "Thứ Hai" },
-  { id: 2, label: "Thứ Ba" },
-  { id: 3, label: "Thứ Tư" },
-  { id: 4, label: "Thứ Năm" },
-  { id: 5, label: "Thứ Sáu" },
-  { id: 6, label: "Thứ Bảy" },
-  { id: 7, label: "Chủ Nhật" },
+  { id: 1, label: "Thứ hai" },
+  { id: 2, label: "Thứ ba" },
+  { id: 3, label: "Thứ tư" },
+  { id: 4, label: "Thứ năm" },
+  { id: 5, label: "Thứ sáu" },
+  { id: 6, label: "Thứ bảy" },
+  { id: 7, label: "Chủ nhật" },
 ];
 
 export function useStudyReminders() {
