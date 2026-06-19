@@ -113,18 +113,19 @@ export function App() {
       <Routes>
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
-        <Route element={<ProtectedApp />}>
-          <Route index element={<Navigate replace to="/dashboard" />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/buddies" element={<BuddySelectionPage />} />
-          <Route path="/buddy-room" element={<BuddyRoomPage />} />
-          <Route path="/quiz" element={<QuizPage />} />
-          <Route path="/quiz-result" element={<QuizResultPage />} />
-          <Route path="/missions" element={<MissionsPage />} />
-          <Route path="/progress" element={<ProgressPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/achievements" element={<RewardsPage />} />
-          <Route path="/buddy-3d" element={<Buddy3DPage />} />
+        <Route path="/" element={<ProtectedApp />}>
+          <Route index element={<Navigate replace to="dashboard" />} />
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="buddies" element={<BuddySelectionPage />} />
+          <Route path="buddy-room" element={<BuddyRoomPage />} />
+          <Route path="quiz" element={<QuizPage />} />
+          <Route path="quiz-result" element={<QuizResultPage />} />
+          <Route path="missions" element={<MissionsPage />} />
+          <Route path="progress" element={<ProgressPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="achievements" element={<RewardsPage />} />
+          <Route path="buddy-3d" element={<Buddy3DPage />} />
+          <Route path="*" element={<Navigate replace to="dashboard" />} />
         </Route>
         <Route path="*" element={<Navigate replace to="/dashboard" />} />
       </Routes>

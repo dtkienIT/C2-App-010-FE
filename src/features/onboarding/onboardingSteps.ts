@@ -13,7 +13,9 @@ export type OnboardingStep = {
 
 export const HOME_ROUTE = "/dashboard";
 
-export const onboardingSteps: OnboardingStep[] = [
+export type OnboardingAudience = "authenticated" | "guest";
+
+const authenticatedOnboardingSteps: OnboardingStep[] = [
   {
     id: "welcome",
     message: "Chào bạn! Mình sẽ hướng dẫn vòng học chính: Quiz -> Pomodoro -> Xu -> Cửa hàng -> Buddy Room -> Mini quiz -> Thống kê.",
@@ -113,3 +115,26 @@ export const onboardingSteps: OnboardingStep[] = [
     title: "Nhiệm vụ đầu tiên",
   },
 ];
+
+const guestOnboardingSteps: OnboardingStep[] = [
+  {
+    id: "guest-welcome",
+    message:
+      "Đây là Guest Pass. Bạn có thể xem trước giao diện, thử Buddy và vào Hồ sơ để nâng cấp khi sẵn sàng, nhưng Quiz, Nhiệm vụ và Thống kê thật sẽ bị khóa.",
+    placement: "center",
+    route: HOME_ROUTE,
+    title: "Chào mừng Guest Pass",
+  },
+  {
+    id: "guest-profile",
+    message:
+      "Bấm vào Hồ sơ để xem trạng thái Guest Pass và nâng cấp tài khoản. Từ đây bạn sẽ mở khóa Quiz, Nhiệm vụ và các dữ liệu học tập thật.",
+    route: "/profile",
+    target: '[data-onboarding="profile-settings"]',
+    title: "Nâng cấp từ Hồ sơ",
+  },
+];
+
+export function getOnboardingSteps(audience: OnboardingAudience) {
+  return audience === "guest" ? guestOnboardingSteps : authenticatedOnboardingSteps;
+}

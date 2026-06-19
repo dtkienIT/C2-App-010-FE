@@ -1,12 +1,12 @@
 import { ArrowLeft, ArrowRight, CheckCircle2, Sparkles, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   ONBOARDING_CLOSE_MOBILE_MENU_EVENT,
   ONBOARDING_OPEN_MOBILE_MENU_EVENT,
 } from "./onboardingStorage";
-import { HOME_ROUTE, onboardingSteps, type OnboardingStep } from "./onboardingSteps";
+import { HOME_ROUTE, type OnboardingStep } from "./onboardingSteps";
 
 type TargetBox = {
   height: number;
@@ -106,11 +106,13 @@ function waitForTarget(selector: string, signal: AbortSignal, timeoutMs: number 
 
 export function GuidedTour({
   isOpen,
+  steps,
   onClose,
   runId,
   runMode = "replay",
 }: {
   isOpen: boolean;
+  steps: OnboardingStep[];
   onClose: (completed: boolean) => void;
   runId: number;
   runMode?: "first-time" | "replay";
@@ -120,24 +122,27 @@ export function GuidedTour({
   const [stepIndex, setStepIndex] = useState(0);
   const [targetBox, setTargetBox] = useState<TargetBox | null>(null);
   const [isPreparingStep, setIsPreparingStep] = useState(false);
-  const currentStep = onboardingSteps[stepIndex];
-  const isLastStep = stepIndex === onboardingSteps.length - 1;
+  const shouldFollowTourRouteRef = useRef(false);
+  const currentStep = steps[stepIndex];
+  const isLastStep = stepIndex === steps.length - 1;
   const isMobile = isMobileViewport();
   const activeTarget = isMobile && currentStep?.mobileTarget ? currentStep.mobileTarget : currentStep?.target;
   const shouldWaitForFirstTimeTarget = runMode === "first-time" && Boolean(activeTarget);
   const canMoveForward = !shouldWaitForFirstTimeTarget || Boolean(targetBox);
 
   function moveToStep(nextIndex: number) {
-    if (nextIndex >= onboardingSteps.length) {
+    if (nextIndex >= steps.length) {
       onClose(true);
       return;
     }
     if (nextIndex < 0) return;
+    shouldFollowTourRouteRef.current = true;
     setStepIndex(nextIndex);
   }
 
   useEffect(() => {
     if (!isOpen) return;
+    shouldFollowTourRouteRef.current = false;
     setStepIndex(0);
   }, [isOpen, runId]);
 
@@ -152,9 +157,16 @@ export function GuidedTour({
 
       const nextRoute = currentStep.route ?? HOME_ROUTE;
       if (location.pathname !== nextRoute) {
+        if (!shouldFollowTourRouteRef.current) {
+          onClose(false);
+          return;
+        }
+        shouldFollowTourRouteRef.current = false;
         navigate(nextRoute);
         return;
       }
+
+      shouldFollowTourRouteRef.current = false;
 
       if (isMobile) {
         if (currentStep.beforeStep === "openMobileMenu") {
@@ -196,7 +208,7 @@ export function GuidedTour({
     return () => {
       controller.abort();
     };
-  }, [activeTarget, currentStep, isMobile, isOpen, location.pathname, navigate, shouldWaitForFirstTimeTarget, stepIndex]);
+  }, [activeTarget, currentStep, isMobile, isOpen, location.pathname, navigate, onClose, shouldWaitForFirstTimeTarget, stepIndex]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -344,7 +356,7 @@ export function GuidedTour({
 
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex gap-1.5">
-            {onboardingSteps.map((step, index) => (
+            {steps.map((step, index) => (
               <span
                 aria-label={`Bước ${index + 1}: ${step.title}`}
                 className={`h-2 rounded-full transition-all ${index === stepIndex ? "w-6 bg-primary" : "w-2 bg-muted"}`}

@@ -2,7 +2,7 @@ import { createContext, type ReactNode, useCallback, useEffect, useMemo, useRef,
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { GuidedTour } from "./GuidedTour";
-import { HOME_ROUTE } from "./onboardingSteps";
+import { HOME_ROUTE, getOnboardingSteps } from "./onboardingSteps";
 import {
   hasSeenOnboarding,
   markOnboardingSeen,
@@ -30,6 +30,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [runId, setRunId] = useState(0);
   const [runMode, setRunMode] = useState<OnboardingRunMode>("first-time");
+  const [pendingOpenMode, setPendingOpenMode] = useState<OnboardingRunMode | null>(null);
+  const onboardingSteps = useMemo(() => getOnboardingSteps(mode === "guest" ? "guest" : "authenticated"), [mode]);
   const autoOpenTimerRef = useRef<number | null>(null);
   const openTimerRef = useRef<number | null>(null);
 
@@ -61,15 +63,10 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       }
       setIsTourOpen(false);
       setRunMode(mode);
-      navigate(HOME_ROUTE);
-
-      openTimerRef.current = window.setTimeout(() => {
-        openTimerRef.current = null;
-        setRunId((current) => current + 1);
-        setIsTourOpen(true);
-      }, 450);
+      setPendingOpenMode(mode);
+      navigate(HOME_ROUTE, { replace: true });
     },
-    [clearAutoOpenTimer, clearOpenTimer, navigate],
+    [clearAutoOpenTimer, clearOpenTimer, getOnboardingKey, navigate],
   );
 
   const startOnboarding = useCallback(() => {
@@ -83,12 +80,14 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const closeOnboarding = useCallback(() => {
     clearAutoOpenTimer();
     clearOpenTimer();
+    setPendingOpenMode(null);
     setIsTourOpen(false);
   }, [clearAutoOpenTimer, clearOpenTimer]);
 
   const completeOnboarding = useCallback(() => {
     clearAutoOpenTimer();
     clearOpenTimer();
+    setPendingOpenMode(null);
     setIsTourOpen(false);
   }, [clearAutoOpenTimer, clearOpenTimer]);
 
@@ -117,6 +116,26 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     autoOpenTimerRef.current = window.setTimeout(startOnboarding, 700);
     return clearAutoOpenTimer;
   }, [clearAutoOpenTimer, getOnboardingKey, isTourOpen, location.pathname, mode, startOnboarding]);
+
+  useEffect(() => {
+    if (pendingOpenMode === null || isTourOpen) {
+      return undefined;
+    }
+
+    if ((mode !== "authenticated" && mode !== "guest") || location.pathname !== HOME_ROUTE) {
+      return undefined;
+    }
+
+    clearOpenTimer();
+    openTimerRef.current = window.setTimeout(() => {
+      openTimerRef.current = null;
+      setRunId((current) => current + 1);
+      setIsTourOpen(true);
+      setPendingOpenMode(null);
+    }, 120);
+
+    return clearOpenTimer;
+  }, [clearOpenTimer, isTourOpen, location.pathname, mode, pendingOpenMode]);
 
   useEffect(() => {
     return () => {
@@ -148,6 +167,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       {children}
       <GuidedTour
         isOpen={isTourOpen}
+        steps={onboardingSteps}
         onClose={(completed) => {
           if (completed) {
             completeOnboarding();
